@@ -1,0 +1,16 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "npm"      # This ecosystem supports npm, yarn, and pnpm
+    directory: "/"                # Location of your package.json and pnpm-lock.yaml
+    target-branch: "main"         # Explicitly targets your main branch
+    schedule:
+      interval: "weekly"          # Runs once a week
+    ignore:
+      - dependency-name: "*"      # Applies to all dependencies
+        update-types:
+          - "version-update:semver-major" # Blocks major updates, leaving only minor and patch
