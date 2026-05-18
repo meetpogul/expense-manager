@@ -1,7 +1,7 @@
-# Offline PWA Starter
+# Expense Manager
 
-Modern Next.js App Router foundation for an offline-first Progressive Web App.
-This repository intentionally contains no business or domain-specific features.
+Modern Next.js App Router expense manager with an offline-first PWA foundation
+and pragmatic feature/domain architecture.
 
 ## Stack
 
@@ -14,6 +14,8 @@ This repository intentionally contains no business or domain-specific features.
 - White-label theme tokens via CSS variables
 - IndexedDB abstraction with `idb`
 - Zustand global state
+- Supabase auth and data access helpers
+- Zod and React Hook Form for validated forms
 - ESLint and Prettier
 - Husky and lint-staged
 - Vitest and Testing Library
@@ -40,12 +42,16 @@ This repository intentionally contains no business or domain-specific features.
 |   |   `-- page.tsx
 |   |-- components/
 |   |   |-- layout/
-|   |   |   |-- index.ts
-|   |   |   `-- layout-shell.tsx
 |   |   |-- service-worker-registration.tsx
 |   |   `-- ui/
-|   |       |-- button.tsx
-|   |       `-- card.tsx
+|   |-- features/
+|   |   |-- auth/
+|   |   |   |-- components/
+|   |   |   `-- server/
+|   |   `-- finance/
+|   |       |-- components/
+|   |       |-- domain/
+|   |       `-- server/
 |   |-- lib/
 |   |   |-- db/
 |   |   |   |-- config.ts
@@ -129,3 +135,11 @@ Tailwind tokens live in `src/app/globals.css`. shadcn/ui is configured in
 `components.json`, with reusable primitives in `src/components/ui`. Brand or
 white-label customization can be done by overriding CSS variables, for example
 with the included `.theme-brand` class.
+
+## Feature Architecture
+
+Reusable platform code stays shared under `src/lib` and `src/components`.
+Business rules, schemas, feature queries, mutations, server actions, and
+feature-specific UI live under `src/features/<feature>`. Keep new domains small:
+extract shared helpers only when multiple domains need the same concept for the
+same reason.

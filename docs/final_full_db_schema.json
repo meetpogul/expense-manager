@@ -1,0 +1,2571 @@
+{
+  "meta": {
+    "project": "budget-tracker",
+    "project_id": "gfcjvmrwqkecfrksbhzu",
+    "host": "db.gfcjvmrwqkecfrksbhzu.supabase.co",
+    "region": "ap-south-1",
+    "postgres_version": "17.6.1",
+    "generated_at": "2026-05-10",
+    "schema_version": "v3-final",
+    "security_advisors": 0,
+    "performance_advisors": 0
+  },
+
+  "extensions": ["uuid-ossp"],
+
+  "tables": {
+    "profiles": {
+      "description": "One row per authenticated user. Auto-created by trigger on auth.users INSERT. Stores spending limits and preferences.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": null,
+          "fk": "auth.users.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "full_name",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "avatar_url",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "monthly_budget",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "daily_limit",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "weekly_limit",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "emergency_fund_target_months",
+          "type": "smallint",
+          "pk": false,
+          "nullable": true,
+          "default": "6",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "profiles_pkey", "unique": true, "columns": ["id"] }
+      ],
+      "triggers": [
+        "trg_profiles_updated_at → handle_updated_at()",
+        "trg_new_profile_notifications → handle_new_profile_notifications()"
+      ],
+      "rls_policies": [
+        {
+          "name": "profiles: own row",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = id"
+        }
+      ]
+    },
+
+    "categories": {
+      "description": "Expense/income categories. Rows with user_id = NULL are system defaults visible to all users (13 seeded). Users can create their own. Soft-deleted via deleted_at.",
+      "rls": true,
+      "soft_delete": true,
+      "seeded_defaults": [
+        "Food & Dining",
+        "Transportation",
+        "Shopping",
+        "Housing & Rent",
+        "Utilities",
+        "Healthcare",
+        "Entertainment",
+        "Education",
+        "Investments",
+        "Salary",
+        "Freelance",
+        "Other Income",
+        "Miscellaneous"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE  (NULL = system default)"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": "'expense'",
+          "fk": null,
+          "check": "IN ('expense','income','both')"
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "categories_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_categories_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_categories_user_active",
+          "unique": false,
+          "columns": ["user_id"],
+          "partial": "WHERE deleted_at IS NULL"
+        }
+      ],
+      "triggers": [],
+      "rls_policies": [
+        {
+          "name": "categories: select own and defaults",
+          "cmd": "SELECT",
+          "using": "deleted_at IS NULL AND (user_id IS NULL OR (SELECT auth.uid()) = user_id)"
+        },
+        {
+          "name": "categories: insert own",
+          "cmd": "INSERT",
+          "with_check": "(SELECT auth.uid()) = user_id"
+        },
+        {
+          "name": "categories: update own",
+          "cmd": "UPDATE",
+          "using": "(SELECT auth.uid()) = user_id"
+        },
+        {
+          "name": "categories: delete own",
+          "cmd": "DELETE",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ],
+      "known_issues": [
+        "⚠️ No updated_at column — category edits leave no audit trail"
+      ]
+    },
+
+    "accounts": {
+      "description": "All user money accounts: cash wallets, bank accounts, credit cards, UPI, digital wallets. Multiple accounts per user supported. Exactly one account per user can be is_default=true (enforced by partial unique index). First account auto-set as default by trigger. Soft-deleted via deleted_at.",
+      "rls": true,
+      "soft_delete": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('cash','bank','credit_card','upi','wallet','other')"
+        },
+        {
+          "name": "balance",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "accounts_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_accounts_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_accounts_one_default_per_user",
+          "unique": true,
+          "columns": ["user_id"],
+          "partial": "WHERE is_default = true"
+        },
+        {
+          "name": "idx_accounts_user_active",
+          "unique": false,
+          "columns": ["user_id"],
+          "partial": "WHERE deleted_at IS NULL"
+        }
+      ],
+      "triggers": [
+        "trg_accounts_updated_at → handle_updated_at()",
+        "trg_first_account_default → handle_first_account_default()  [BEFORE INSERT]",
+        "trg_account_default_update → handle_account_default_update()  [BEFORE UPDATE]"
+      ],
+      "rls_policies": [
+        {
+          "name": "accounts: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id AND deleted_at IS NULL"
+        }
+      ],
+      "known_issues": [
+        "⚠️ Soft-deleted accounts are hidden by RLS but transactions hold a RESTRICT FK — app must only ever soft-delete accounts, never hard-delete",
+        "⚠️ recurring_rules.account_id is RESTRICT — must deactivate recurring rules before soft-deleting an account"
+      ]
+    },
+
+    "recurring_rules": {
+      "description": "Template definitions for auto-repeating income or expense transactions (salary, rent, EMI, subscriptions). App reads next_due_date to generate transactions on schedule.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "accounts.id  ON DELETE RESTRICT"
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "categories.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('expense','income')"
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "frequency",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('daily','weekly','biweekly','monthly','quarterly','yearly')"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "next_due_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "recurring_rules_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_recurring_rules_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_recurring_rules_account_id",
+          "unique": false,
+          "columns": ["account_id"]
+        },
+        {
+          "name": "idx_recurring_rules_category_id",
+          "unique": false,
+          "columns": ["category_id"]
+        }
+      ],
+      "triggers": ["trg_recurring_rules_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "recurring_rules: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "transactions": {
+      "description": "Core financial ledger. Every income, expense, and transfer entry. Soft-deleted via deleted_at. Supports linking to savings goals, projects, and recurring rules. Partial indexes optimise all common query patterns.",
+      "rls": true,
+      "soft_delete": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "accounts.id  ON DELETE RESTRICT"
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "categories.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('expense','income','transfer')"
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "merchant_name",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "fk": null
+        },
+        {
+          "name": "time",
+          "type": "time",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "payment_method",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null,
+          "check": "IN ('cash','upi','card','net_banking','cheque','other')"
+        },
+        {
+          "name": "is_recurring",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "recurring_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "recurring_rules.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "savings_goal_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "savings_goals.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "projects.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "tags",
+          "type": "text[]",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "attachment_url",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "transactions_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_transactions_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_transactions_date",
+          "unique": false,
+          "columns": ["date DESC"]
+        },
+        {
+          "name": "idx_transactions_account_id",
+          "unique": false,
+          "columns": ["account_id"]
+        },
+        {
+          "name": "idx_transactions_category_id",
+          "unique": false,
+          "columns": ["category_id"]
+        },
+        {
+          "name": "idx_transactions_type",
+          "unique": false,
+          "columns": ["type"]
+        },
+        {
+          "name": "idx_transactions_recurring_id",
+          "unique": false,
+          "columns": ["recurring_id"]
+        },
+        {
+          "name": "idx_transactions_savings_goal",
+          "unique": false,
+          "columns": ["savings_goal_id"]
+        },
+        {
+          "name": "idx_transactions_project",
+          "unique": false,
+          "columns": ["project_id"]
+        },
+        {
+          "name": "idx_transactions_merchant",
+          "unique": false,
+          "columns": ["merchant_name"]
+        },
+        {
+          "name": "idx_transactions_user_date",
+          "unique": false,
+          "columns": ["user_id", "date DESC"],
+          "partial": "WHERE deleted_at IS NULL"
+        },
+        {
+          "name": "idx_transactions_user_type",
+          "unique": false,
+          "columns": ["user_id", "type"],
+          "partial": "WHERE deleted_at IS NULL"
+        },
+        {
+          "name": "idx_transactions_user_category_date",
+          "unique": false,
+          "columns": ["user_id", "category_id", "date"],
+          "partial": "WHERE deleted_at IS NULL"
+        }
+      ],
+      "triggers": [
+        "trg_transactions_updated_at → handle_updated_at()",
+        "trg_savings_goal_transaction → handle_savings_goal_transaction()  [AFTER INSERT]"
+      ],
+      "rls_policies": [
+        {
+          "name": "transactions: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id AND deleted_at IS NULL"
+        }
+      ],
+      "known_issues": [
+        "⚠️ savings_goal trigger fires only on INSERT — soft-deleting a transaction does not decrement savings_goals.current_amount. Must recalculate in app layer."
+      ]
+    },
+
+    "transfers": {
+      "description": "Records account-to-account money movements. Each transfer links two transaction rows (a debit on from_account and a credit on to_account).",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "from_account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "accounts.id  ON DELETE RESTRICT"
+        },
+        {
+          "name": "to_account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "accounts.id  ON DELETE RESTRICT"
+        },
+        {
+          "name": "from_transaction_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "transactions.id  ON DELETE CASCADE  ⚠️ should be SET NULL"
+        },
+        {
+          "name": "to_transaction_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "transactions.id  ON DELETE CASCADE  ⚠️ should be SET NULL"
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "check_constraints": ["from_account_id <> to_account_id"],
+      "indexes": [
+        { "name": "transfers_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_transfers_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_transfers_from_account_id",
+          "unique": false,
+          "columns": ["from_account_id"]
+        },
+        {
+          "name": "idx_transfers_to_account_id",
+          "unique": false,
+          "columns": ["to_account_id"]
+        },
+        {
+          "name": "idx_transfers_from_transaction_id",
+          "unique": false,
+          "columns": ["from_transaction_id"]
+        },
+        {
+          "name": "idx_transfers_to_transaction_id",
+          "unique": false,
+          "columns": ["to_transaction_id"]
+        }
+      ],
+      "triggers": [],
+      "rls_policies": [
+        {
+          "name": "transfers: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ],
+      "known_issues": [
+        "🔴 from/to_transaction_id ON DELETE CASCADE — if a transaction is ever hard-deleted the transfer record silently disappears. Change to SET NULL.",
+        "⚠️ No updated_at or soft_delete — transfers are immutable once created."
+      ]
+    },
+
+    "budgets": {
+      "description": "Per-category or overall spending limits for weekly/monthly/yearly periods. category_id=NULL means the budget applies to all spending. Soft-deleted via deleted_at.",
+      "rls": true,
+      "soft_delete": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "categories.id  ON DELETE CASCADE  ⚠️ should be SET NULL"
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "period",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": "'monthly'",
+          "fk": null,
+          "check": "IN ('weekly','monthly','yearly')"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        }
+      ],
+      "unique_constraints": ["(user_id, category_id, period, start_date)"],
+      "indexes": [
+        { "name": "budgets_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "budgets_user_id_category_id_period_start_date_key",
+          "unique": true,
+          "columns": ["user_id", "category_id", "period", "start_date"]
+        },
+        {
+          "name": "idx_budgets_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_budgets_category_id",
+          "unique": false,
+          "columns": ["category_id"]
+        },
+        {
+          "name": "idx_budgets_user_category",
+          "unique": false,
+          "columns": ["user_id", "category_id"],
+          "partial": "WHERE deleted_at IS NULL"
+        }
+      ],
+      "triggers": ["trg_budgets_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "budgets: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id AND deleted_at IS NULL"
+        }
+      ],
+      "known_issues": [
+        "🔴 category_id ON DELETE CASCADE — deleting a category hard-deletes all associated budgets. Change to SET NULL."
+      ]
+    },
+
+    "savings_goals": {
+      "description": "Target-based savings tracker. current_amount is auto-incremented by a trigger when a transaction with savings_goal_id is inserted. is_achieved auto-set when current_amount >= target_amount.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "target_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "current_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null,
+          "check": ">= 0"
+        },
+        {
+          "name": "deadline",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_achieved",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "savings_goals_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_savings_goals_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        }
+      ],
+      "triggers": ["trg_savings_goals_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "savings_goals: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "loans": {
+      "description": "Loan tracking with full EMI automation. next_emi_date auto-advances after each payment. Links to an account for balance monitoring and low-balance alerts.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "accounts.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "lender_name",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "loan_type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('home','car','personal','education','business','gold','other')"
+        },
+        {
+          "name": "principal_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "outstanding_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "interest_rate",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0  (annual %)"
+        },
+        {
+          "name": "interest_type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('reducing','flat')"
+        },
+        {
+          "name": "emi_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "emi_day",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "BETWEEN 1 AND 31"
+        },
+        {
+          "name": "emi_reminder_days",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "2",
+          "fk": null
+        },
+        {
+          "name": "low_balance_threshold",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "tenure_months",
+          "type": "integer",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "months_paid",
+          "type": "integer",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "next_emi_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "loans_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_loans_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_loans_account_id",
+          "unique": false,
+          "columns": ["account_id"]
+        },
+        {
+          "name": "idx_loans_next_emi_date",
+          "unique": false,
+          "columns": ["next_emi_date"]
+        }
+      ],
+      "triggers": ["trg_loans_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "loans: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "loan_payments": {
+      "description": "Immutable ledger of every loan payment. Supports EMI, interest-only, extra prepayment, partial, and foreclosure payment types. Trigger auto-updates parent loans row after each insert.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "loan_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "loans.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "transaction_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "transactions.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "payment_type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('emi','interest_only','extra','partial','foreclosure')"
+        },
+        {
+          "name": "payment_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "fk": null
+        },
+        {
+          "name": "total_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "principal_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "interest_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "extra_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "outstanding_after",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "loan_payments_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_loan_payments_loan_id",
+          "unique": false,
+          "columns": ["loan_id"]
+        },
+        {
+          "name": "idx_loan_payments_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_loan_payments_date",
+          "unique": false,
+          "columns": ["payment_date DESC"]
+        },
+        {
+          "name": "idx_loan_payments_transaction_id",
+          "unique": false,
+          "columns": ["transaction_id"]
+        }
+      ],
+      "triggers": [
+        "trg_after_loan_payment → handle_loan_payment()  [AFTER INSERT]"
+      ],
+      "rls_policies": [
+        {
+          "name": "loan_payments: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ],
+      "known_issues": [
+        "⚠️ No is_reversed flag — incorrect payments have no correction path. Recommend adding is_reversed boolean + reversed_at timestamptz."
+      ]
+    },
+
+    "debts": {
+      "description": "Track informal money owed to/from people. i_owe = user owes someone. they_owe = someone owes user. settled_at records when resolved.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "person_name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('i_owe','they_owe')"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_settled",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "settled_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "debts_pkey", "unique": true, "columns": ["id"] },
+        { "name": "idx_debts_user_id", "unique": false, "columns": ["user_id"] }
+      ],
+      "triggers": ["trg_debts_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "debts: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ],
+      "known_issues": [
+        "⚠️ No transaction_id FK — settling a debt cannot be linked to the actual payment transaction."
+      ]
+    },
+
+    "subscriptions": {
+      "description": "Dedicated subscription tracker separate from recurring_rules. Tracks services like Netflix, Spotify, gym. last_used_date enables unused-subscription detection. next_renewal_date drives reminders.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "accounts.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "categories.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "billing_cycle",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "IN ('weekly','monthly','quarterly','yearly')"
+        },
+        {
+          "name": "next_renewal_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "last_used_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "reminder_days",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "3",
+          "fk": null
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "subscriptions_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_subscriptions_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_subscriptions_renewal_date",
+          "unique": false,
+          "columns": ["next_renewal_date"]
+        },
+        {
+          "name": "idx_subscriptions_account_id",
+          "unique": false,
+          "columns": ["account_id"]
+        },
+        {
+          "name": "idx_subscriptions_category_id",
+          "unique": false,
+          "columns": ["category_id"]
+        }
+      ],
+      "triggers": ["trg_subscriptions_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "subscriptions: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "projects": {
+      "description": "Group transactions under a named project or event (e.g. Goa Trip, Home Renovation, Diwali 2025). Optional budget for the project. Transactions link via project_id.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "budget",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "projects_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_projects_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        }
+      ],
+      "triggers": ["trg_projects_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "projects: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "notification_settings": {
+      "description": "Per-user notification preferences. One row per user, auto-created on profile insert. All notifications default to enabled.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "emi_reminder",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "emi_reminder_days",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "2",
+          "fk": null
+        },
+        {
+          "name": "low_balance_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "budget_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "budget_alert_threshold",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "80",
+          "fk": null,
+          "note": "% of budget used before alert fires"
+        },
+        {
+          "name": "large_transaction_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "large_transaction_amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": "5000",
+          "fk": null
+        },
+        {
+          "name": "recurring_reminder",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "recurring_reminder_days",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "1",
+          "fk": null
+        },
+        {
+          "name": "debt_reminder",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "debt_reminder_days",
+          "type": "smallint",
+          "pk": false,
+          "nullable": false,
+          "default": "3",
+          "fk": null
+        },
+        {
+          "name": "savings_milestone_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null,
+          "note": "Fires at 25/50/75/100% of goal"
+        },
+        {
+          "name": "loan_milestone_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null,
+          "note": "Fires at 25/50/75% paid"
+        },
+        {
+          "name": "weekly_digest",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "monthly_report",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "daily_limit_alert",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "true",
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "unique_constraints": ["(user_id)"],
+      "indexes": [
+        {
+          "name": "notification_settings_pkey",
+          "unique": true,
+          "columns": ["id"]
+        },
+        {
+          "name": "notification_settings_user_id_key",
+          "unique": true,
+          "columns": ["user_id"]
+        }
+      ],
+      "triggers": [
+        "trg_notification_settings_updated_at → handle_updated_at()"
+      ],
+      "rls_policies": [
+        {
+          "name": "notification_settings: own row",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "net_worth_snapshots": {
+      "description": "Monthly point-in-time snapshot of user's total assets vs total debts. net_worth is a generated stored column (total_assets - total_debts). Use these to draw a wealth timeline chart.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "snapshot_date",
+          "type": "date",
+          "pk": false,
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "fk": null
+        },
+        {
+          "name": "total_assets",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "total_debts",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": "0",
+          "fk": null
+        },
+        {
+          "name": "net_worth",
+          "type": "numeric",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null,
+          "note": "GENERATED ALWAYS AS (total_assets - total_debts) STORED"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "unique_constraints": ["(user_id, snapshot_date)"],
+      "indexes": [
+        {
+          "name": "net_worth_snapshots_pkey",
+          "unique": true,
+          "columns": ["id"]
+        },
+        {
+          "name": "net_worth_snapshots_user_id_snapshot_date_key",
+          "unique": true,
+          "columns": ["user_id", "snapshot_date"]
+        },
+        {
+          "name": "idx_net_worth_snapshots_user_date",
+          "unique": false,
+          "columns": ["user_id", "snapshot_date DESC"]
+        }
+      ],
+      "triggers": [],
+      "rls_policies": [
+        {
+          "name": "net_worth_snapshots: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    },
+
+    "wishlist": {
+      "description": "Future purchase tracker. Optional link to a savings_goal to track saving toward a specific item. Priority helps user focus. is_purchased marks completion.",
+      "rls": true,
+      "soft_delete": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "pk": true,
+          "nullable": false,
+          "default": "uuid_generate_v4()",
+          "fk": null
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": "profiles.id  ON DELETE CASCADE"
+        },
+        {
+          "name": "savings_goal_id",
+          "type": "uuid",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": "savings_goals.id  ON DELETE SET NULL"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "pk": false,
+          "nullable": false,
+          "default": null,
+          "fk": null,
+          "check": "> 0"
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "pk": false,
+          "nullable": false,
+          "default": "'medium'",
+          "fk": null,
+          "check": "IN ('low','medium','high')"
+        },
+        {
+          "name": "target_date",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "is_purchased",
+          "type": "boolean",
+          "pk": false,
+          "nullable": false,
+          "default": "false",
+          "fk": null
+        },
+        {
+          "name": "purchased_at",
+          "type": "date",
+          "pk": false,
+          "nullable": true,
+          "default": null,
+          "fk": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "pk": false,
+          "nullable": false,
+          "default": "now()",
+          "fk": null
+        }
+      ],
+      "indexes": [
+        { "name": "wishlist_pkey", "unique": true, "columns": ["id"] },
+        {
+          "name": "idx_wishlist_user_id",
+          "unique": false,
+          "columns": ["user_id"]
+        },
+        {
+          "name": "idx_wishlist_savings_goal_id",
+          "unique": false,
+          "columns": ["savings_goal_id"]
+        }
+      ],
+      "triggers": ["trg_wishlist_updated_at → handle_updated_at()"],
+      "rls_policies": [
+        {
+          "name": "wishlist: own rows",
+          "cmd": "ALL",
+          "using": "(SELECT auth.uid()) = user_id"
+        }
+      ]
+    }
+  },
+
+  "views": {
+    "loan_analytics": {
+      "security": "INVOKER",
+      "description": "Full per-loan analytics joined with payment history and linked account balance.",
+      "output_fields": {
+        "id, user_id, name, lender_name, loan_type": "from loans",
+        "principal_amount, outstanding_amount, interest_rate, emi_amount": "from loans",
+        "tenure_months, months_paid, months_remaining, end_date, next_emi_date": "from loans",
+        "total_payable": "emi_amount × tenure_months",
+        "total_interest": "total_payable − principal_amount",
+        "total_paid_so_far": "SUM(loan_payments.total_amount)",
+        "principal_paid": "SUM(loan_payments.principal_amount)",
+        "interest_paid": "SUM(loan_payments.interest_amount)",
+        "extra_paid": "SUM(loan_payments.extra_amount)",
+        "estimated_months_to_finish": "computed from outstanding_amount and interest rate",
+        "projected_finish_date": "CURRENT_DATE + estimated_months_to_finish",
+        "percent_paid": "(principal − outstanding) / principal × 100",
+        "low_balance_alert": "true if account.balance < low_balance_threshold",
+        "linked_account_balance": "accounts.balance",
+        "low_balance_threshold, emi_reminder_days, account_id": "from loans"
+      }
+    },
+    "emi_reminders": {
+      "security": "INVOKER",
+      "description": "Surfaces loans with EMI due within emi_reminder_days from today. Used for push notifications.",
+      "output_fields": {
+        "loan_id, user_id, loan_name, lender_name": "from loans",
+        "emi_amount, next_emi_date": "from loans",
+        "days_until_emi": "next_emi_date − CURRENT_DATE",
+        "account_balance": "accounts.balance",
+        "low_balance_threshold": "from loans",
+        "insufficient_balance": "true if account_balance < emi_amount",
+        "low_balance_warning": "true if account_balance < low_balance_threshold"
+      }
+    },
+    "financial_health": {
+      "security": "INVOKER",
+      "description": "Computes a 0–100 financial health score for each user from this month's data. Built from 4 components of 25 points each.",
+      "scoring": {
+        "savings_rate_score": "25 pts — (income − expense) / income. Full score at ≥ 20% savings rate",
+        "budget_score": "25 pts — ratio of active budgets not exceeded this month",
+        "debt_score": "25 pts — lower total_emi / monthly_income ratio = higher score",
+        "emergency_fund_score": "25 pts — full score when savings_goals.current_amount covers 3+ months of expenses"
+      },
+      "output_fields": [
+        "user_id",
+        "savings_rate_score",
+        "budget_score",
+        "debt_score",
+        "emergency_fund_score",
+        "total_score",
+        "monthly_income",
+        "monthly_expense",
+        "total_monthly_emi",
+        "total_saved"
+      ]
+    }
+  },
+
+  "functions": [
+    {
+      "name": "handle_updated_at",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "Sets NEW.updated_at = NOW() on every row UPDATE. Used by all tables with an updated_at column.",
+      "used_by_triggers": [
+        "trg_profiles_updated_at",
+        "trg_accounts_updated_at",
+        "trg_transactions_updated_at",
+        "trg_budgets_updated_at",
+        "trg_savings_goals_updated_at",
+        "trg_recurring_rules_updated_at",
+        "trg_loans_updated_at",
+        "trg_debts_updated_at",
+        "trg_subscriptions_updated_at",
+        "trg_projects_updated_at",
+        "trg_wishlist_updated_at",
+        "trg_notification_settings_updated_at"
+      ]
+    },
+    {
+      "name": "handle_new_user",
+      "language": "plpgsql",
+      "security": "DEFINER",
+      "search_path": "public",
+      "execute_revoked_from": ["anon", "authenticated"],
+      "description": "Auto-inserts a row into public.profiles when a new user is created in auth.users. Reads full_name and avatar_url from raw_user_meta_data.",
+      "used_by_triggers": [
+        "trg_on_auth_user_created  [AFTER INSERT ON auth.users]"
+      ]
+    },
+    {
+      "name": "handle_new_profile_notifications",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "Auto-inserts a default notification_settings row when a profiles row is created.",
+      "used_by_triggers": [
+        "trg_new_profile_notifications  [AFTER INSERT ON profiles]"
+      ]
+    },
+    {
+      "name": "handle_first_account_default",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "On account INSERT, if no other account exists for this user, sets NEW.is_default = TRUE automatically.",
+      "used_by_triggers": [
+        "trg_first_account_default  [BEFORE INSERT ON accounts]"
+      ]
+    },
+    {
+      "name": "handle_account_default_update",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "On account UPDATE, prevents unsetting is_default=true if no other account for this user is already default. Raises an exception with a clear message.",
+      "used_by_triggers": [
+        "trg_account_default_update  [BEFORE UPDATE ON accounts]"
+      ]
+    },
+    {
+      "name": "handle_savings_goal_transaction",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "On transaction INSERT where savings_goal_id is set, increments savings_goals.current_amount by the transaction amount and sets is_achieved=true if target is met.",
+      "used_by_triggers": [
+        "trg_savings_goal_transaction  [AFTER INSERT ON transactions]"
+      ]
+    },
+    {
+      "name": "handle_loan_payment",
+      "language": "plpgsql",
+      "security": "INVOKER",
+      "search_path": "public",
+      "description": "On loan_payment INSERT, updates the parent loans row: decrements outstanding_amount, increments months_paid, advances next_emi_date by 1 month, and sets is_active=false when outstanding_amount <= 0 or payment_type = 'foreclosure'.",
+      "used_by_triggers": [
+        "trg_after_loan_payment  [AFTER INSERT ON loan_payments]"
+      ]
+    }
+  ],
+
+  "open_issues": [
+    {
+      "severity": "🔴 HIGH",
+      "table": "transfers",
+      "fix": "Change from/to_transaction_id ON DELETE CASCADE → SET NULL"
+    },
+    {
+      "severity": "🔴 HIGH",
+      "table": "budgets",
+      "fix": "Change category_id ON DELETE CASCADE → SET NULL"
+    },
+    {
+      "severity": "🟡 MEDIUM",
+      "table": "categories",
+      "fix": "Add updated_at column + trigger"
+    },
+    {
+      "severity": "🟡 MEDIUM",
+      "table": "debts",
+      "fix": "Add optional transaction_id FK (SET NULL)"
+    },
+    {
+      "severity": "🟡 MEDIUM",
+      "table": "loan_payments",
+      "fix": "Add is_reversed boolean + reversed_at timestamptz"
+    },
+    {
+      "severity": "🟡 MEDIUM",
+      "table": "accounts+transactions",
+      "fix": "Document and enforce soft-delete-only policy for accounts in app layer"
+    },
+    {
+      "severity": "🟢 LOW",
+      "table": "profiles",
+      "fix": "Consider re-adding currency_code for display preferences"
+    },
+    {
+      "severity": "🟢 LOW",
+      "table": "transfers",
+      "fix": "Add updated_at and soft-delete support"
+    }
+  ],
+
+  "summary": {
+    "total_tables": 16,
+    "total_views": 3,
+    "total_functions": 7,
+    "total_triggers": 18,
+    "total_indexes": 57,
+    "soft_delete_tables": ["accounts", "budgets", "categories", "transactions"],
+    "rls_enabled_on_all_tables": true,
+    "security_advisors_open": 0,
+    "performance_advisors_open": 0,
+    "open_issues": { "high": 2, "medium": 4, "low": 2 }
+  }
+}

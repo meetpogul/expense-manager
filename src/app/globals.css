@@ -36,23 +36,23 @@
   --spacing-shell: clamp(1rem, 3vw, 2rem);
   --spacing-section: clamp(2rem, 6vw, 5rem);
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.17 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.17 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.17 0 0);
+  --primary: oklch(0.51 0.11 180);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --secondary: oklch(0.974 0 0);
+  --secondary-foreground: oklch(0.24 0 0);
+  --muted: oklch(0.974 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.956 0.018 180);
+  --accent-foreground: oklch(0.27 0.04 180);
+  --destructive: oklch(0.56 0.18 25);
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.91 0 0);
+  --ring: oklch(0.64 0.1 180);
 }
 
 .dark {
@@ -82,9 +82,9 @@
   to the html/body wrapper and redefining only the variables that differ.
 */
 .theme-brand {
-  --primary: oklch(0.48 0.19 260);
+  --primary: oklch(0.51 0.11 180);
   --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.62 0.16 260);
+  --ring: oklch(0.64 0.1 180);
 }
 
 @layer base {

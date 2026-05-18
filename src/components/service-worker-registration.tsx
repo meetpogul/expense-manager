@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { registerServiceWorker } from "@/lib/pwa";
+import { registerServiceWorker } from "@/platform/pwa";
 
 export function ServiceWorkerRegistration() {
   useEffect(() => {

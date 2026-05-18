@@ -1,6 +1,6 @@
 ---
-name: Refactor Safely
-description: Plan and execute safe refactoring using dependency analysis
+name: refactor-safely
+description: Plan and execute safe refactoring using dependency analysis. Use for renames, dead-code checks, decomposition, impact analysis, and low-risk refactors.
 ---
 
 ## Refactor Safely

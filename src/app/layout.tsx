@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Offline PWA Starter",
-  description: "A minimal offline-first Next.js PWA foundation.",
+  title: "Expense Manager",
+  description: "A minimal personal expense tracker.",
   manifest: "/manifest.json",
-  applicationName: "Offline PWA Starter",
+  applicationName: "Expense Manager",
   icons: {
     icon: "/icons/icon-192.png",
     apple: "/icons/icon-180.png",
@@ -25,12 +25,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Offline PWA Starter",
+    title: "Expense Manager",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111827",
+  themeColor: "#0f766e",
 };
 
 export default function RootLayout({

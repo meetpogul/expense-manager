@@ -1,3 +1,1 @@
-export * from "./permissions";
-export * from "./show";
-export * from "./types";
+export * from "@/platform/notifications";

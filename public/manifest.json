@@ -1,7 +1,7 @@
 {
-  "name": "Offline PWA Starter",
-  "short_name": "PWA Starter",
-  "description": "A minimal offline-first Next.js PWA foundation.",
+  "name": "Expense Manager",
+  "short_name": "Expenses",
+  "description": "A minimal personal expense tracker.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -9,7 +9,7 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#111827",
+  "theme_color": "#0f766e",
   "categories": ["productivity", "utilities"],
   "icons": [
     {

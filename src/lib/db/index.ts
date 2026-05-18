@@ -1,2 +1,1 @@
-export * from "./config";
-export * from "./crud";
+export * from "@/platform/indexed-db";
