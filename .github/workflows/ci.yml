@@ -133,12 +133,27 @@ jobs:
       - name: Check Job Status
         if: always()
         run: |
-          if [ "${{ steps.eslint.outcome }}" == "failure" ] || \
-             [ "${{ steps.prettier.outcome }}" == "failure" ] || \
-             [ "${{ steps.typecheck.outcome }}" == "failure" ] || \
-             [ "${{ steps.vitest.outcome }}" == "failure" ]; then
-             echo "One or more quality checks failed."
-             exit 1
+          failed=0
+
+          for check in eslint prettier typecheck vitest; do
+            case "$check" in
+              eslint) outcome="${{ steps.eslint.outcome }}" ;;
+              prettier) outcome="${{ steps.prettier.outcome }}" ;;
+              typecheck) outcome="${{ steps.typecheck.outcome }}" ;;
+              vitest) outcome="${{ steps.vitest.outcome }}" ;;
+            esac
+
+            if [ "$outcome" = "failure" ]; then
+              echo "::error::${check} failed"
+              if [ -f "${check}.md" ]; then
+                cat "${check}.md"
+              fi
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            exit 1
           fi
 
   e2e:
