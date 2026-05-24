@@ -1,9 +1,10 @@
 "use server";
 
-import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { CreateCategoryUseCase } from "@/features/categories/application/use-cases/create-category.use-case";
-import { SoftDeleteCategoryUseCase } from "@/features/categories/application/use-cases/soft-delete-category.use-case";
-import { UpdateCategoryUseCase } from "@/features/categories/application/use-cases/update-category.use-case";
+import {
+  createServiceClient,
+  getSupabaseAndUser,
+  getUser,
+} from "@/features/auth/server/session";
 import { SupabaseCategoryRepository } from "@/features/categories/infrastructure/supabase-category.repository";
 import { actionError } from "@/lib/actions/state";
 import { revalidateFinancePaths } from "@/shared/application/revalidation";
@@ -24,9 +25,10 @@ export async function createCategoryAction(
 
   try {
     const { supabase, userId } = await getSupabaseAndUser();
-    await new CreateCategoryUseCase(
-      new SupabaseCategoryRepository(supabase),
-    ).execute(parsed.data, userId);
+    await new SupabaseCategoryRepository(supabase).create({
+      ...parsed.data,
+      userId,
+    });
 
     revalidateFinancePaths();
 
@@ -55,9 +57,7 @@ export async function updateCategoryAction(
 
   try {
     const { supabase } = await getSupabaseAndUser();
-    await new UpdateCategoryUseCase(
-      new SupabaseCategoryRepository(supabase),
-    ).execute(id, parsed.data);
+    await new SupabaseCategoryRepository(supabase).update(id, parsed.data);
 
     revalidateFinancePaths();
 
@@ -76,10 +76,16 @@ export async function softDeleteCategoryAction(formData: FormData) {
     return;
   }
 
-  const { supabase } = await getSupabaseAndUser();
-  await new SoftDeleteCategoryUseCase(
-    new SupabaseCategoryRepository(supabase),
-  ).execute(id, new Date().toISOString());
+  const user = await getUser();
+  if (!user) {
+    return;
+  }
+
+  const serviceSupabase = createServiceClient();
+  await new SupabaseCategoryRepository(serviceSupabase).softDelete(
+    id,
+    new Date().toISOString(),
+  );
 
   revalidateFinancePaths();
 }

@@ -36,5 +36,5 @@ export {
 } from "./domain/usage";
 
 export { BudgetDetail as BudgetDetailView } from "./components/budget-detail";
-export { BudgetForm } from "./components/budget-form";
+export { BudgetForm, BudgetFormContainer } from "./components/budget-form";
 export { BudgetList } from "./components/budget-list";

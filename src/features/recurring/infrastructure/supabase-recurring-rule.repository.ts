@@ -1,6 +1,6 @@
 import { Money } from "@/shared/domain/value-objects";
 import { numberFromNumeric } from "@/platform/supabase/normalize";
-import { rowFromNewTransaction } from "@/features/transactions/infrastructure/transaction-row.mapper";
+import { rowFromNewTransaction } from "@/shared/infrastructure/transaction-row.mapper";
 
 import type { createClient } from "@/platform/supabase/server";
 import type {
@@ -10,7 +10,7 @@ import type {
 } from "../application/ports";
 import type { AccountId } from "@/features/accounts/domain/value-objects/account-id";
 import type { RecurringRuleInput } from "../domain/recurring.schema";
-import type { NewTransaction } from "@/features/transactions/application/records";
+import type { NewTransaction } from "@/shared/application/records";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 

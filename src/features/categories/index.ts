@@ -24,4 +24,7 @@ export {
 } from "./domain/constants";
 
 // Components
-export { CategoryForm } from "./components/category-form";
+export {
+  CategoryForm,
+  CategoryFormContainer,
+} from "./components/category-form";

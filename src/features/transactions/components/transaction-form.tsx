@@ -31,11 +31,18 @@ import type { Account } from "@/features/accounts/domain/types";
 import type { Category } from "@/features/categories/domain/types";
 import { DEFAULT_EXPENSE_CATEGORY_NAME } from "@/features/categories/domain/constants";
 
+import type { RefObject } from "react";
+import type { ActionState } from "@/lib/actions/state";
+
 type TransactionFormProps = {
   accounts: Account[];
   categories: Category[];
   transaction?: Transaction;
   compact?: boolean;
+  formRef: RefObject<HTMLFormElement | null>;
+  isPending: boolean;
+  state: ActionState;
+  submitFormData: () => void;
 };
 
 export function TransactionForm({
@@ -43,12 +50,11 @@ export function TransactionForm({
   categories,
   transaction,
   compact = false,
+  formRef,
+  isPending,
+  state,
+  submitFormData,
 }: TransactionFormProps) {
-  const action = transaction
-    ? updateTransactionAction
-    : createTransactionAction;
-  const { formRef, isPending, state, submitFormData } =
-    useServerActionForm(action);
   const defaultType = transaction?.type ?? "expense";
   const defaultAccount =
     transaction?.account_id ??
@@ -262,5 +268,36 @@ export function TransactionForm({
             : "Save transaction"}
       </Button>
     </form>
+  );
+}
+
+export function TransactionFormContainer({
+  accounts,
+  categories,
+  transaction,
+  compact = false,
+}: {
+  accounts: Account[];
+  categories: Category[];
+  transaction?: Transaction;
+  compact?: boolean;
+}) {
+  const action = transaction
+    ? updateTransactionAction
+    : createTransactionAction;
+  const { formRef, isPending, state, submitFormData } =
+    useServerActionForm(action);
+
+  return (
+    <TransactionForm
+      accounts={accounts}
+      categories={categories}
+      transaction={transaction}
+      compact={compact}
+      formRef={formRef}
+      isPending={isPending}
+      state={state}
+      submitFormData={submitFormData}
+    />
   );
 }

@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Edit Transaction",
+  description: "Update details for an existing transaction.",
+};
+
 import Link from "next/link";
 import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
 
@@ -5,7 +12,7 @@ import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import { TransactionFormContainer } from "@/features/transactions/components/transaction-form";
 import { deleteTransactionAction } from "@/features/transactions/server/actions";
 import { getAccounts } from "@/features/accounts/server/queries";
 import { getCategories } from "@/features/categories/server/queries";
@@ -40,7 +47,7 @@ export default async function EditTransactionPage({
             <CardTitle className="text-base">Edit transaction</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <TransactionForm
+            <TransactionFormContainer
               accounts={accounts}
               categories={categories}
               transaction={transaction}

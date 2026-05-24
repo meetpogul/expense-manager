@@ -2,8 +2,7 @@ import "server-only";
 
 import { createClient } from "@/platform/supabase/server";
 
-import type { Account } from "@/features/accounts/domain/types";
-import type { DashboardSummary, Transaction } from "../domain/types";
+import type { Transaction } from "../domain/types";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -20,6 +19,7 @@ export async function getTransactions(
   let query = supabase
     .from("transactions")
     .select("*, accounts(id,name,type), categories(id,name,icon,type,color)")
+    .is("deleted_at", null)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -66,28 +66,9 @@ export async function getTransactionById(supabase: SupabaseClient, id: string) {
   return normalizeTransaction(data);
 }
 
-export async function getDashboardSummary(
-  accounts: Account[],
-  transactions: Transaction[],
-): Promise<DashboardSummary> {
-  const monthKey = new Date().toISOString().slice(0, 7);
-  const monthTransactions = transactions.filter((transaction) =>
-    transaction.date.startsWith(monthKey),
-  );
-
-  return {
-    totalBalance: accounts.reduce(
-      (total, account) => total + account.balance,
-      0,
-    ),
-    monthlyIncome: monthTransactions
-      .filter((transaction) => transaction.type === "income")
-      .reduce((total, transaction) => total + transaction.amount, 0),
-    monthlyExpense: monthTransactions
-      .filter((transaction) => transaction.type === "expense")
-      .reduce((total, transaction) => total + transaction.amount, 0),
-  };
-}
+// getDashboardSummary has moved to features/dashboard/server/queries.ts.
+// Re-exported here for backward compatibility.
+export { getDashboardSummary } from "@/features/dashboard/server/queries";
 
 function normalizeTransaction(
   transaction: Record<string, unknown>,

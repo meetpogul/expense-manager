@@ -1,10 +1,7 @@
 "use server";
 
 import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { CreateRecurringRuleUseCase } from "@/features/recurring/application/use-cases/create-recurring-rule.use-case";
-import { DeactivateRecurringRuleUseCase } from "@/features/recurring/application/use-cases/deactivate-recurring-rule.use-case";
 import { ExecuteRecurringRuleUseCase } from "@/features/recurring/application/use-cases/execute-recurring-rule.use-case";
-import { UpdateRecurringRuleUseCase } from "@/features/recurring/application/use-cases/update-recurring-rule.use-case";
 import { SupabaseRecurringRuleRepository } from "@/features/recurring/infrastructure/supabase-recurring-rule.repository";
 import { actionError } from "@/lib/actions/state";
 import { revalidateFinancePaths } from "@/shared/application/revalidation";
@@ -25,9 +22,10 @@ export async function createRecurringRuleAction(
 
   try {
     const { supabase, userId } = await getSupabaseAndUser();
-    await new CreateRecurringRuleUseCase(
-      new SupabaseRecurringRuleRepository(supabase),
-    ).execute(parsed.data, userId);
+    await new SupabaseRecurringRuleRepository(supabase).create({
+      ...parsed.data,
+      userId,
+    });
 
     revalidateFinancePaths();
 
@@ -56,9 +54,7 @@ export async function updateRecurringRuleAction(
 
   try {
     const { supabase } = await getSupabaseAndUser();
-    await new UpdateRecurringRuleUseCase(
-      new SupabaseRecurringRuleRepository(supabase),
-    ).execute(id, parsed.data);
+    await new SupabaseRecurringRuleRepository(supabase).update(id, parsed.data);
 
     revalidateFinancePaths();
 
@@ -78,9 +74,7 @@ export async function deactivateRecurringRuleAction(formData: FormData) {
   }
 
   const { supabase } = await getSupabaseAndUser();
-  await new DeactivateRecurringRuleUseCase(
-    new SupabaseRecurringRuleRepository(supabase),
-  ).execute(id);
+  await new SupabaseRecurringRuleRepository(supabase).deactivate(id);
 
   revalidateFinancePaths();
 }

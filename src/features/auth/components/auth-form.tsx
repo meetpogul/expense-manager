@@ -10,15 +10,19 @@ import { Input } from "@/components/ui/input";
 import { emptyActionState } from "@/lib/actions/state";
 import { cn } from "@/lib/utils";
 
-export function AuthForm() {
+import type { ActionState } from "@/lib/actions/state";
+
+interface AuthFormProps {
+  action: (payload: FormData) => void;
+  pending: boolean;
+  state: ActionState;
+}
+
+export function AuthForm({ action, pending, state }: AuthFormProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [state, formAction, isPending] = useActionState(
-    signInOrSignUpAction,
-    emptyActionState,
-  );
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form action={action} className="flex flex-col gap-5">
       <input name="intent" type="hidden" value={mode} />
       <div
         aria-label="Authentication mode"
@@ -85,8 +89,8 @@ export function AuthForm() {
           {state.message}
         </p>
       ) : null}
-      <Button className="h-11" disabled={isPending}>
-        {isPending
+      <Button className="h-11" disabled={pending}>
+        {pending
           ? "Working..."
           : mode === "signin"
             ? "Sign in"
@@ -95,4 +99,13 @@ export function AuthForm() {
       </Button>
     </form>
   );
+}
+
+export function AuthFormContainer() {
+  const [state, formAction, isPending] = useActionState(
+    signInOrSignUpAction,
+    emptyActionState,
+  );
+
+  return <AuthForm action={formAction} pending={isPending} state={state} />;
 }

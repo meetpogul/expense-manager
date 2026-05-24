@@ -84,4 +84,65 @@ describe("Transaction entity", () => {
       }),
     ).toThrow(DomainError);
   });
+
+  // ── Edge cases ───────────────────────────────────────────────────────────
+
+  it("createIncome forcefully sets type to income regardless of draft.type", () => {
+    const income = Transaction.createIncome({
+      ...baseDraft,
+      // even if draft says expense, createIncome must produce income
+      type: "expense",
+    });
+    expect(income.type).toBe("income");
+    expect(income.balanceEffect().amount).toBeGreaterThan(0);
+  });
+
+  it("income balance effect is positive, expense is negative", () => {
+    const income = Transaction.createIncome({ ...baseDraft, type: "income" });
+    const expense = Transaction.createExpense({
+      ...baseDraft,
+      type: "expense",
+    });
+
+    expect(income.balanceEffect().amount).toBe(450);
+    expect(expense.balanceEffect().amount).toBe(-450);
+    expect(income.reverseBalanceEffect().amount).toBe(-450);
+    expect(expense.reverseBalanceEffect().amount).toBe(450);
+  });
+
+  it("changeTo from income to expense requires a category", () => {
+    const income = Transaction.createIncome({ ...baseDraft, type: "income" });
+
+    expect(() =>
+      income.changeTo({
+        ...baseDraft,
+        categoryId: null,
+        type: "expense",
+      }),
+    ).toThrow(DomainError);
+  });
+
+  it("restoreFromPersistence succeeds for a soft-deleted expense", () => {
+    const deleted = Transaction.restoreFromPersistence({
+      ...baseDraft,
+      deletedAt: "2026-05-19T00:00:00.000Z",
+      id: TransactionId.from("transaction-2"),
+      type: "expense",
+    });
+
+    expect(deleted.toSnapshot().deletedAt).toBe("2026-05-19T00:00:00.000Z");
+    expect(deleted.balanceEffect().amount).toBe(-450);
+  });
+
+  it("changeTo preserves the original transaction id", () => {
+    const original = Transaction.restoreFromPersistence({
+      ...baseDraft,
+      deletedAt: null,
+      id: TransactionId.from("tx-abc"),
+      type: "expense",
+    });
+
+    const updated = original.changeTo({ ...baseDraft, type: "income" });
+    expect(updated.id.value).toBe("tx-abc");
+  });
 });

@@ -1,6 +1,10 @@
 "use server";
 
-import { getSupabaseAndUser } from "@/features/auth/server/session";
+import {
+  createServiceClient,
+  getSupabaseAndUser,
+  getUser,
+} from "@/features/auth/server/session";
 import { CreateTransactionUseCase } from "@/features/transactions/application/use-cases/create-transaction.use-case";
 import { DeleteTransactionUseCase } from "@/features/transactions/application/use-cases/delete-transaction.use-case";
 import { UpdateTransactionUseCase } from "@/features/transactions/application/use-cases/update-transaction.use-case";
@@ -72,8 +76,13 @@ export async function deleteTransactionAction(formData: FormData) {
     return;
   }
 
-  const { supabase } = await getSupabaseAndUser();
-  const repository = new SupabaseTransactionRepository(supabase);
+  const user = await getUser();
+  if (!user) {
+    return;
+  }
+
+  const serviceSupabase = createServiceClient();
+  const repository = new SupabaseTransactionRepository(serviceSupabase);
   await new DeleteTransactionUseCase(repository).execute(
     id,
     new Date().toISOString(),

@@ -21,4 +21,4 @@ export {
 } from "./domain/constants";
 
 // Components
-export { AccountForm } from "./components/account-form";
+export { AccountForm, AccountFormContainer } from "./components/account-form";

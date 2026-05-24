@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Overview of your expenses, budgets, and financial goals.",
+};
+
 import Link from "next/link";
 import {
   ArrowDownLeftIcon,
@@ -12,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
 import { SummaryCard } from "@/features/dashboard/components/summary-card";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import { TransactionFormContainer } from "@/features/transactions/components/transaction-form";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
 import {
   formatCompactCurrency,
@@ -102,7 +109,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               {accounts.length > 0 ? (
-                <TransactionForm
+                <TransactionFormContainer
                   accounts={accounts}
                   categories={categories}
                   compact

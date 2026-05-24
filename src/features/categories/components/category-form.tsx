@@ -21,14 +21,24 @@ import { useServerActionForm } from "@/lib/actions/use-server-action-form";
 
 import type { Category } from "@/features/categories/domain/types";
 
+import type { RefObject } from "react";
+import type { ActionState } from "@/lib/actions/state";
+
 type CategoryFormProps = {
   category?: Category;
+  formRef: RefObject<HTMLFormElement | null>;
+  isPending: boolean;
+  state: ActionState;
+  submitFormData: () => void;
 };
 
-export function CategoryForm({ category }: CategoryFormProps) {
-  const action = category ? updateCategoryAction : createCategoryAction;
-  const { formRef, isPending, state, submitFormData } =
-    useServerActionForm(action);
+export function CategoryForm({
+  category,
+  formRef,
+  isPending,
+  state,
+  submitFormData,
+}: CategoryFormProps) {
   const {
     formState: { errors },
     handleSubmit,
@@ -96,5 +106,21 @@ export function CategoryForm({ category }: CategoryFormProps) {
             : "Save category"}
       </Button>
     </form>
+  );
+}
+
+export function CategoryFormContainer({ category }: { category?: Category }) {
+  const action = category ? updateCategoryAction : createCategoryAction;
+  const { formRef, isPending, state, submitFormData } =
+    useServerActionForm(action);
+
+  return (
+    <CategoryForm
+      category={category}
+      formRef={formRef}
+      isPending={isPending}
+      state={state}
+      submitFormData={submitFormData}
+    />
   );
 }

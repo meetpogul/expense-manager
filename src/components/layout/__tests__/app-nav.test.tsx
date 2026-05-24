@@ -19,12 +19,13 @@ describe("AppNav", () => {
   it("marks only the dashboard link active on the root route", () => {
     render(<AppNav />);
 
-    expect(screen.getByRole("link", { name: /dashboard/i })).toHaveClass(
-      "bg-secondary",
+    expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-    expect(screen.getByRole("link", { name: /transactions/i })).not.toHaveClass(
-      "bg-secondary",
-    );
+    expect(
+      screen.getByRole("link", { name: /transactions/i }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("marks nested transaction routes active", () => {
@@ -32,11 +33,12 @@ describe("AppNav", () => {
 
     render(<AppNav />);
 
-    expect(screen.getByRole("link", { name: /transactions/i })).toHaveClass(
-      "bg-secondary",
+    expect(screen.getByRole("link", { name: /transactions/i })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-    expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveClass(
-      "bg-secondary",
-    );
+    expect(
+      screen.getByRole("link", { name: /dashboard/i }),
+    ).not.toHaveAttribute("aria-current");
   });
 });

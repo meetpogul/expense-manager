@@ -24,5 +24,8 @@ export {
   isRecurringRuleDue,
 } from "./domain/schedule";
 
-export { RecurringRuleForm } from "./components/recurring-rule-form";
+export {
+  RecurringRuleForm,
+  RecurringRuleFormContainer,
+} from "./components/recurring-rule-form";
 export { RecurringRuleList } from "./components/recurring-rule-list";

@@ -34,6 +34,29 @@ describe("transaction row mapper", () => {
     });
   });
 
+  it("maps Supabase rows into mutation transactions with full fields", () => {
+    expect(
+      mutationTransactionFromRow({
+        account_id: "account-1",
+        category_id: "category-1",
+        date: "2026-05-18",
+        deleted_at: "2026-05-18T00:00:00.000Z",
+        id: "transaction-1",
+        merchant_name: "Swiggy",
+        note: null,
+        type: "expense",
+      }),
+    ).toMatchObject({
+      amount: 0, // Fallback amount
+      category_id: "category-1",
+      deleted_at: "2026-05-18T00:00:00.000Z",
+      is_recurring: false, // Fallback
+      merchant_name: "Swiggy",
+      note: null, // Falsy note
+      type: "expense",
+    });
+  });
+
   it("maps domain payloads into persistence rows", () => {
     const changes = {
       account_id: "account-1",
@@ -66,5 +89,22 @@ describe("transaction row mapper", () => {
         type: "expense",
       }),
     ).not.toHaveProperty("recurring_id");
+  });
+
+  it("handles explicit undefined values for recurring fields", () => {
+    const row = rowFromTransactionChanges({
+      account_id: "account-1",
+      amount: 450,
+      category_id: "category-1",
+      date: "2026-05-18",
+      merchant_name: "Swiggy",
+      note: "Lunch",
+      type: "expense",
+      is_recurring: undefined,
+      recurring_id: undefined,
+    });
+
+    expect(row).toHaveProperty("is_recurring", false);
+    expect(row).toHaveProperty("recurring_id", null);
   });
 });

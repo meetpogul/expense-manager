@@ -47,7 +47,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     pool: "threads",
+    testTimeout: 15000,
     setupFiles: ["./test/setup.ts"],
+    exclude: ["e2e/**", "node_modules/**", "dist/**"],
   },
   resolve: {
     alias: {

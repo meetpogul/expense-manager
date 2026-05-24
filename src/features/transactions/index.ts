@@ -57,6 +57,9 @@ export { parseTransactionFilters } from "./hooks/use-transaction-filters";
 export type { TransactionFilters } from "./hooks/use-transaction-filters";
 
 // Components
-export { TransactionForm } from "./components/transaction-form";
+export {
+  TransactionForm,
+  TransactionFormContainer,
+} from "./components/transaction-form";
 export { TransactionList } from "./components/transaction-list";
 export { TransactionFilters as TransactionFiltersForm } from "./components/transaction-filters";

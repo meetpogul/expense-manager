@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same PR or commit
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+# Grant permission to post PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quality:
+    name: Lint, Format & Unit Tests
+    # Skip push events from PR merges — already validated by the PR run
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        id: eslint
+        continue-on-error: true
+        run: |
+          echo "<details><summary>ESLint Report</summary>" > eslint.md
+          echo "" >> eslint.md
+          echo '```text' >> eslint.md
+          NO_COLOR=1 pnpm lint >> eslint.md 2>&1
+          echo '```' >> eslint.md
+          echo "</details>" >> eslint.md
+
+      - name: Prettier
+        id: prettier
+        continue-on-error: true
+        run: |
+          echo "<details><summary>Prettier Report</summary>" > prettier.md
+          echo "" >> prettier.md
+          echo '```text' >> prettier.md
+          NO_COLOR=1 pnpm format:check >> prettier.md 2>&1
+          echo '```' >> prettier.md
+          echo "</details>" >> prettier.md
+
+      - name: TypeScript
+        id: typecheck
+        continue-on-error: true
+        run: |
+          echo "<details><summary>TypeScript Report</summary>" > typecheck.md
+          echo "" >> typecheck.md
+          echo '```text' >> typecheck.md
+          NO_COLOR=1 pnpm typecheck >> typecheck.md 2>&1
+          echo '```' >> typecheck.md
+          echo "</details>" >> typecheck.md
+
+      - name: Unit Tests
+        id: vitest
+        continue-on-error: true
+        run: |
+          echo "<details><summary>Unit Tests Report</summary>" > vitest.md
+          echo "" >> vitest.md
+          echo '```text' >> vitest.md
+          NO_COLOR=1 pnpm test:run >> vitest.md 2>&1
+          echo '```' >> vitest.md
+          echo "</details>" >> vitest.md
+
+      - name: Create PR Comment
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          echo "## Quality Checks Report" > pr-report.md
+          echo "Here are the results of the quality checks:" >> pr-report.md
+          echo "" >> pr-report.md
+          cat eslint.md prettier.md typecheck.md vitest.md >> pr-report.md
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: quality-report
+          path: pr-report.md
+
+      - name: Check Job Status
+        if: always()
+        run: |
+          if [ "${{ steps.eslint.outcome }}" == "failure" ] || \
+             [ "${{ steps.prettier.outcome }}" == "failure" ] || \
+             [ "${{ steps.typecheck.outcome }}" == "failure" ] || \
+             [ "${{ steps.vitest.outcome }}" == "failure" ]; then
+             echo "One or more quality checks failed."
+             exit 1
+          fi
+
+  e2e:
+    name: E2E Tests
+    # Skip push events from PR merges — already validated by the PR run
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+      E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        id: e2e
+        continue-on-error: true
+        run: |
+          echo "<details><summary>E2E Tests Report</summary>" > e2e.md
+          echo "" >> e2e.md
+          echo '```text' >> e2e.md
+          NO_COLOR=1 pnpm test:e2e >> e2e.md 2>&1
+          echo '```' >> e2e.md
+          echo "</details>" >> e2e.md
+
+      - name: Create E2E PR Comment
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          echo "## E2E Checks Report" > pr-e2e-report.md
+          echo "Here are the results of the Playwright E2E tests:" >> pr-e2e-report.md
+          echo "" >> pr-e2e-report.md
+          cat e2e.md >> pr-e2e-report.md
+
+      - name: Comment PR (E2E)
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: e2e-report
+          path: pr-e2e-report.md
+
+      - name: Check E2E Job Status
+        if: always()
+        run: |
+          if [ "${{ steps.e2e.outcome }}" == "failure" ]; then
+             echo "E2E tests failed."
+             exit 1
+          fi
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

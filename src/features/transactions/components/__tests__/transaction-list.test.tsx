@@ -72,11 +72,19 @@ describe("TransactionList", () => {
             note: null,
             categories: null,
           },
+          {
+            ...transactionsFixture[0]!,
+            id: "account-fallback",
+            merchant_name: null,
+            note: null,
+            accounts: null,
+          },
         ]}
       />,
     );
 
     expect(screen.getAllByText("Food & Dining").length).toBeGreaterThan(0);
     expect(screen.getByText("Transaction")).toBeVisible();
+    expect(screen.getByText(/Account -/)).toBeVisible();
   });
 });

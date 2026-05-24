@@ -1,10 +1,11 @@
 "use server";
 
-import { CreateAccountUseCase } from "@/features/accounts/application/use-cases/create-account.use-case";
-import { SoftDeleteAccountUseCase } from "@/features/accounts/application/use-cases/soft-delete-account.use-case";
-import { UpdateAccountUseCase } from "@/features/accounts/application/use-cases/update-account.use-case";
 import { SupabaseAccountRepository } from "@/features/accounts/infrastructure/supabase-account.repository";
-import { getSupabaseAndUser } from "@/features/auth/server/session";
+import {
+  createServiceClient,
+  getSupabaseAndUser,
+  getUser,
+} from "@/features/auth/server/session";
 import { actionError } from "@/lib/actions/state";
 import { revalidateFinancePaths } from "@/shared/application/revalidation";
 
@@ -24,9 +25,10 @@ export async function createAccountAction(
 
   try {
     const { supabase, userId } = await getSupabaseAndUser();
-    await new CreateAccountUseCase(
-      new SupabaseAccountRepository(supabase),
-    ).execute(parsed.data, userId);
+    await new SupabaseAccountRepository(supabase).create({
+      ...parsed.data,
+      userId,
+    });
 
     revalidateFinancePaths();
 
@@ -55,9 +57,7 @@ export async function updateAccountAction(
 
   try {
     const { supabase } = await getSupabaseAndUser();
-    await new UpdateAccountUseCase(
-      new SupabaseAccountRepository(supabase),
-    ).execute(id, parsed.data);
+    await new SupabaseAccountRepository(supabase).update(id, parsed.data);
 
     revalidateFinancePaths();
 
@@ -76,10 +76,16 @@ export async function softDeleteAccountAction(formData: FormData) {
     return;
   }
 
-  const { supabase } = await getSupabaseAndUser();
-  await new SoftDeleteAccountUseCase(
-    new SupabaseAccountRepository(supabase),
-  ).execute(id, new Date().toISOString());
+  const user = await getUser();
+  if (!user) {
+    return;
+  }
+
+  const serviceSupabase = createServiceClient();
+  await new SupabaseAccountRepository(serviceSupabase).softDelete(
+    id,
+    new Date().toISOString(),
+  );
 
   revalidateFinancePaths();
 }

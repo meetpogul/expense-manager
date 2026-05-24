@@ -1,7 +1,7 @@
 import type { RecurringRuleInput } from "../domain/recurring.schema";
 import type { AccountId } from "@/features/accounts/domain/value-objects/account-id";
 import type { Money } from "@/shared/domain/value-objects";
-import type { NewTransaction } from "@/features/transactions/application/records";
+import type { NewTransaction } from "@/shared/application/records";
 import type { RecurringFrequency } from "../domain/types";
 
 export type RecurringRuleRepository = {

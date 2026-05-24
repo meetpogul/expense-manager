@@ -26,15 +26,26 @@ import { useServerActionForm } from "@/lib/actions/use-server-action-form";
 import type { Budget } from "@/features/budgets/domain/types";
 import type { Category } from "@/features/categories/domain/types";
 
+import type { RefObject } from "react";
+import type { ActionState } from "@/lib/actions/state";
+
 type BudgetFormProps = {
   budget?: Budget;
   categories: Category[];
+  formRef: RefObject<HTMLFormElement | null>;
+  isPending: boolean;
+  state: ActionState;
+  submitFormData: () => void;
 };
 
-export function BudgetForm({ budget, categories }: BudgetFormProps) {
-  const action = budget ? updateBudgetAction : createBudgetAction;
-  const { formRef, isPending, state, submitFormData } =
-    useServerActionForm(action);
+export function BudgetForm({
+  budget,
+  categories,
+  formRef,
+  isPending,
+  state,
+  submitFormData,
+}: BudgetFormProps) {
   const {
     formState: { errors },
     handleSubmit,
@@ -154,5 +165,28 @@ export function BudgetForm({ budget, categories }: BudgetFormProps) {
         {isPending ? "Saving..." : budget ? "Update budget" : "Save budget"}
       </Button>
     </form>
+  );
+}
+
+export function BudgetFormContainer({
+  budget,
+  categories,
+}: {
+  budget?: Budget;
+  categories: Category[];
+}) {
+  const action = budget ? updateBudgetAction : createBudgetAction;
+  const { formRef, isPending, state, submitFormData } =
+    useServerActionForm(action);
+
+  return (
+    <BudgetForm
+      budget={budget}
+      categories={categories}
+      formRef={formRef}
+      isPending={isPending}
+      state={state}
+      submitFormData={submitFormData}
+    />
   );
 }

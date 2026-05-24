@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { validateCategoryForm } from "../validation";
+import { categoryFormSchema } from "../category.schema";
 
 describe("Category Validation", () => {
   it("parses valid category form data", () => {
@@ -68,6 +69,20 @@ describe("Category Validation", () => {
       expect(result.state.fieldErrors).toEqual({
         name: "Category name is required.",
       });
+    }
+  });
+
+  // ── Schema preprocessor direct tests ──────────────────────────────────────
+
+  it("schema optionalTextFromForm passes through non-string values as null", () => {
+    const result = categoryFormSchema.safeParse({
+      name: "Salary",
+      type: "income",
+      icon: null, // non-string value passed directly
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.icon).toBeNull();
     }
   });
 });

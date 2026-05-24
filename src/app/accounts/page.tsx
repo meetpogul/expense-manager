@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Accounts",
+  description: "Manage your bank accounts, credit cards, and cash balances.",
+};
+
 import Link from "next/link";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 
@@ -7,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { AccountForm } from "@/features/accounts/components/account-form";
+import { AccountFormContainer } from "@/features/accounts/components/account-form";
 import { formatCurrency } from "@/features/transactions/domain/format";
 import { softDeleteAccountAction } from "@/features/accounts/server/actions";
 import { getAccounts } from "@/features/accounts/server/queries";
@@ -93,7 +100,7 @@ export default async function AccountsPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <AccountForm account={editingAccount} />
+              <AccountFormContainer account={editingAccount} />
             </CardContent>
           </Card>
         </aside>
