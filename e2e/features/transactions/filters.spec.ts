@@ -83,7 +83,7 @@ test.describe("Transactions - Filters", () => {
       .filter({ hasText: "Save transaction" })
       .getByLabel("Category")
       .selectOption(categoryName1);
-    await page.getByLabel("Date").fill("2026-05-10");
+    await page.getByLabel("Date", { exact: true }).fill("2026-05-10");
     await page.getByRole("button", { name: "Save transaction" }).click();
     await expect(page.getByText("Transaction saved.")).toBeVisible({
       timeout: 10_000,
@@ -99,7 +99,7 @@ test.describe("Transactions - Filters", () => {
       .filter({ hasText: "Save transaction" })
       .getByLabel("Category")
       .selectOption(categoryName2);
-    await page.getByLabel("Date").fill("2026-06-15");
+    await page.getByLabel("Date", { exact: true }).fill("2026-06-15");
     await page.getByRole("button", { name: "Save transaction" }).click();
     await expect(page.getByText("Transaction saved.")).toBeVisible({
       timeout: 10_000,
