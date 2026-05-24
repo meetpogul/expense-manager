@@ -31,7 +31,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10.33.2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,9 +49,13 @@ jobs:
           echo "<details><summary>ESLint Report</summary>" > eslint.md
           echo "" >> eslint.md
           echo '```text' >> eslint.md
+          set +e
           NO_COLOR=1 pnpm lint >> eslint.md 2>&1
+          status=$?
+          set -e
           echo '```' >> eslint.md
           echo "</details>" >> eslint.md
+          exit "$status"
 
       - name: Prettier
         id: prettier
@@ -60,9 +64,13 @@ jobs:
           echo "<details><summary>Prettier Report</summary>" > prettier.md
           echo "" >> prettier.md
           echo '```text' >> prettier.md
+          set +e
           NO_COLOR=1 pnpm format:check >> prettier.md 2>&1
+          status=$?
+          set -e
           echo '```' >> prettier.md
           echo "</details>" >> prettier.md
+          exit "$status"
 
       - name: TypeScript
         id: typecheck
@@ -71,9 +79,13 @@ jobs:
           echo "<details><summary>TypeScript Report</summary>" > typecheck.md
           echo "" >> typecheck.md
           echo '```text' >> typecheck.md
+          set +e
           NO_COLOR=1 pnpm typecheck >> typecheck.md 2>&1
+          status=$?
+          set -e
           echo '```' >> typecheck.md
           echo "</details>" >> typecheck.md
+          exit "$status"
 
       - name: Unit Tests
         id: vitest
@@ -82,9 +94,13 @@ jobs:
           echo "<details><summary>Unit Tests Report</summary>" > vitest.md
           echo "" >> vitest.md
           echo '```text' >> vitest.md
+          set +e
           NO_COLOR=1 pnpm test:run >> vitest.md 2>&1
+          status=$?
+          set -e
           echo '```' >> vitest.md
           echo "</details>" >> vitest.md
+          exit "$status"
 
       - name: Create PR Comment
         if: github.event_name == 'pull_request' && always()
@@ -92,7 +108,20 @@ jobs:
           echo "## Quality Checks Report" > pr-report.md
           echo "Here are the results of the quality checks:" >> pr-report.md
           echo "" >> pr-report.md
-          cat eslint.md prettier.md typecheck.md vitest.md >> pr-report.md
+          for report in eslint.md prettier.md typecheck.md vitest.md; do
+            if [ -f "$report" ]; then
+              cat "$report" >> pr-report.md
+            else
+              name="${report%.md}"
+              echo "<details><summary>${name} Report</summary>" >> pr-report.md
+              echo "" >> pr-report.md
+              echo '```text' >> pr-report.md
+              echo "This check did not run or did not create a report file." >> pr-report.md
+              echo '```' >> pr-report.md
+              echo "</details>" >> pr-report.md
+            fi
+            echo "" >> pr-report.md
+          done
 
       - name: Comment PR
         if: github.event_name == 'pull_request' && always()
@@ -133,7 +162,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10.33.2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -154,9 +183,13 @@ jobs:
           echo "<details><summary>E2E Tests Report</summary>" > e2e.md
           echo "" >> e2e.md
           echo '```text' >> e2e.md
+          set +e
           NO_COLOR=1 pnpm test:e2e >> e2e.md 2>&1
+          status=$?
+          set -e
           echo '```' >> e2e.md
           echo "</details>" >> e2e.md
+          exit "$status"
 
       - name: Create E2E PR Comment
         if: github.event_name == 'pull_request' && always()
@@ -164,7 +197,16 @@ jobs:
           echo "## E2E Checks Report" > pr-e2e-report.md
           echo "Here are the results of the Playwright E2E tests:" >> pr-e2e-report.md
           echo "" >> pr-e2e-report.md
-          cat e2e.md >> pr-e2e-report.md
+          if [ -f e2e.md ]; then
+            cat e2e.md >> pr-e2e-report.md
+          else
+            echo "<details><summary>E2E Tests Report</summary>" >> pr-e2e-report.md
+            echo "" >> pr-e2e-report.md
+            echo '```text' >> pr-e2e-report.md
+            echo "The E2E check did not run or did not create a report file." >> pr-e2e-report.md
+            echo '```' >> pr-e2e-report.md
+            echo "</details>" >> pr-e2e-report.md
+          fi
 
       - name: Comment PR (E2E)
         if: github.event_name == 'pull_request' && always()
