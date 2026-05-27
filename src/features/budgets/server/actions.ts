@@ -1,10 +1,6 @@
 "use server";
 
 import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { CreateBudgetUseCase } from "@/features/budgets/application/use-cases/create-budget.use-case";
-import { SetBudgetActiveUseCase } from "@/features/budgets/application/use-cases/set-budget-active.use-case";
-import { SoftDeleteBudgetUseCase } from "@/features/budgets/application/use-cases/soft-delete-budget.use-case";
-import { UpdateBudgetUseCase } from "@/features/budgets/application/use-cases/update-budget.use-case";
 import { SupabaseBudgetRepository } from "@/features/budgets/infrastructure/supabase-budget.repository";
 import { actionError } from "@/lib/actions/state";
 import { revalidateFinancePaths } from "@/shared/application/revalidation";
@@ -25,9 +21,10 @@ export async function createBudgetAction(
 
   try {
     const { supabase, userId } = await getSupabaseAndUser();
-    await new CreateBudgetUseCase(
-      new SupabaseBudgetRepository(supabase),
-    ).execute(parsed.data, userId);
+    await new SupabaseBudgetRepository(supabase).create({
+      ...parsed.data,
+      userId,
+    });
 
     revalidateFinancePaths();
 
@@ -56,9 +53,7 @@ export async function updateBudgetAction(
 
   try {
     const { supabase } = await getSupabaseAndUser();
-    await new UpdateBudgetUseCase(
-      new SupabaseBudgetRepository(supabase),
-    ).execute(id, parsed.data);
+    await new SupabaseBudgetRepository(supabase).update(id, parsed.data);
 
     revalidateFinancePaths();
 
@@ -78,9 +73,10 @@ export async function softDeleteBudgetAction(formData: FormData) {
   }
 
   const { supabase } = await getSupabaseAndUser();
-  await new SoftDeleteBudgetUseCase(
-    new SupabaseBudgetRepository(supabase),
-  ).execute(id, new Date().toISOString());
+  await new SupabaseBudgetRepository(supabase).softDelete(
+    id,
+    new Date().toISOString(),
+  );
 
   revalidateFinancePaths();
 }
@@ -94,9 +90,7 @@ export async function setBudgetActiveAction(formData: FormData) {
   }
 
   const { supabase } = await getSupabaseAndUser();
-  await new SetBudgetActiveUseCase(
-    new SupabaseBudgetRepository(supabase),
-  ).execute(id, isActive);
+  await new SupabaseBudgetRepository(supabase).setActive(id, isActive);
 
   revalidateFinancePaths();
 }

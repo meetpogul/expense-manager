@@ -1,10 +1,8 @@
 export type TransactionType = "expense" | "income";
 
-export type DashboardSummary = {
-  totalBalance: number;
-  monthlyIncome: number;
-  monthlyExpense: number;
-};
+// DashboardSummary has moved to features/dashboard/domain/types.ts.
+// Re-exported here for backward compatibility.
+export type { DashboardSummary } from "@/features/dashboard/domain/types";
 
 export type Transaction = {
   id: string;

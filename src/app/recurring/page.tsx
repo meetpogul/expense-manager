@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Recurring Transactions",
+  description: "Manage subscriptions and repeating transactions.",
+};
+
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 
@@ -8,7 +15,7 @@ import { Empty } from "@/components/ui/empty";
 import { getAccounts } from "@/features/accounts/server/queries";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
 import { getCategories } from "@/features/categories/server/queries";
-import { RecurringRuleForm } from "@/features/recurring/components/recurring-rule-form";
+import { RecurringRuleFormContainer } from "@/features/recurring/components/recurring-rule-form";
 import { RecurringRuleList } from "@/features/recurring/components/recurring-rule-list";
 import { getRecurringRules } from "@/features/recurring/server/queries";
 
@@ -57,7 +64,7 @@ export default async function RecurringPage({
             </CardHeader>
             <CardContent>
               {accounts.length > 0 ? (
-                <RecurringRuleForm
+                <RecurringRuleFormContainer
                   accounts={accounts}
                   categories={categories}
                   rule={editingRule}

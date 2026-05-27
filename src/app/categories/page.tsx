@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Categories",
+  description:
+    "Organize your transactions with custom expense and income categories.",
+};
+
 import Link from "next/link";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 
@@ -7,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
-import { CategoryForm } from "@/features/categories/components/category-form";
+import { CategoryFormContainer } from "@/features/categories/components/category-form";
 import { softDeleteCategoryAction } from "@/features/categories/server/actions";
 import { getCategories } from "@/features/categories/server/queries";
 
@@ -100,7 +108,7 @@ export default async function CategoriesPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <CategoryForm category={editingCategory} />
+              <CategoryFormContainer category={editingCategory} />
             </CardContent>
           </Card>
         </aside>

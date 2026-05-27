@@ -1,10 +1,17 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Budgets",
+  description: "Set and track your monthly spending limits and budgets.",
+};
+
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BudgetForm } from "@/features/budgets/components/budget-form";
+import { BudgetFormContainer } from "@/features/budgets/components/budget-form";
 import { BudgetList } from "@/features/budgets/components/budget-list";
 import { getBudgets } from "@/features/budgets/server/queries";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
@@ -51,7 +58,10 @@ export default async function BudgetsPage({ searchParams }: BudgetsPageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <BudgetForm budget={editingBudget} categories={categories} />
+              <BudgetFormContainer
+                budget={editingBudget}
+                categories={categories}
+              />
             </CardContent>
           </Card>
         </aside>

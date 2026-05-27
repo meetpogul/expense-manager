@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Configure your Expense Manager preferences, data, and profile.",
+};
+
 import Link from "next/link";
 import {
   FolderIcon,

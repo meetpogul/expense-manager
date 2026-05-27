@@ -18,8 +18,7 @@ import type { TransactionInput } from "../../domain/validation";
 class InMemoryTransactionRepository implements TransactionUnitOfWork {
   accounts = new Map<string, Money>();
   transactions = new Map<string, TransactionRecord>();
-  failSetBalanceOnCall: number | null = null;
-  setBalanceCalls = 0;
+  failBalanceUpdatesForAccounts = new Set<string>();
 
   async getAccountBalance(accountId: AccountId) {
     const balance = this.accounts.get(accountId.value);
@@ -32,9 +31,7 @@ class InMemoryTransactionRepository implements TransactionUnitOfWork {
   }
 
   async setAccountBalance(accountId: AccountId, balance: Money) {
-    this.setBalanceCalls += 1;
-
-    if (this.failSetBalanceOnCall === this.setBalanceCalls) {
+    if (this.failBalanceUpdatesForAccounts.has(accountId.value)) {
       throw new Error("Injected balance failure");
     }
 
@@ -89,6 +86,16 @@ const expenseInput: TransactionInput = {
   type: "expense",
 };
 
+const incomeInput: TransactionInput = {
+  accountId: "bank",
+  amount: 10000,
+  categoryId: null,
+  date: "2026-05-18",
+  merchantName: null,
+  note: "Salary",
+  type: "income",
+};
+
 describe("transaction use cases", () => {
   let repository: InMemoryTransactionRepository;
 
@@ -109,7 +116,7 @@ describe("transaction use cases", () => {
   });
 
   it("soft-deletes a created transaction if balance update fails", async () => {
-    repository.failSetBalanceOnCall = 1;
+    repository.failBalanceUpdatesForAccounts.add("cash");
 
     await expect(
       new CreateTransactionUseCase(repository).execute(expenseInput, "user-1"),
@@ -139,14 +146,20 @@ describe("transaction use cases", () => {
       expenseInput,
       "user-1",
     );
-    repository.setBalanceCalls = 0;
+    const originalSetBalanceMethod =
+      repository.setAccountBalance.bind(repository);
+    let calls = 0;
+    repository.setAccountBalance = async (accountId, balance) => {
+      calls++;
+      return originalSetBalanceMethod(accountId, balance);
+    };
 
     await new UpdateTransactionUseCase(repository).execute("transaction-1", {
       ...expenseInput,
       merchantName: "Zomato",
     });
 
-    expect(repository.setBalanceCalls).toBe(0);
+    expect(calls).toBe(0);
   });
 
   it("rolls back account moves if the second balance update fails", async () => {
@@ -154,8 +167,7 @@ describe("transaction use cases", () => {
       expenseInput,
       "user-1",
     );
-    repository.setBalanceCalls = 0;
-    repository.failSetBalanceOnCall = 2;
+    repository.failBalanceUpdatesForAccounts.add("bank");
 
     await expect(
       new UpdateTransactionUseCase(repository).execute("transaction-1", {
@@ -198,8 +210,7 @@ describe("transaction use cases", () => {
       expenseInput,
       "user-1",
     );
-    repository.setBalanceCalls = 0;
-    repository.failSetBalanceOnCall = 1;
+    repository.failBalanceUpdatesForAccounts.add("cash");
 
     await expect(
       new DeleteTransactionUseCase(repository).execute(
@@ -210,5 +221,108 @@ describe("transaction use cases", () => {
 
     expect(repository.accounts.get("cash")?.amount).toBe(4500);
     expect(repository.transactions.get("transaction-1")?.deleted_at).toBeNull();
+  });
+
+  // ── Additional flows and edge cases ──────────────────────────────────────
+
+  it("creates an income transaction and credits the account", async () => {
+    await new CreateTransactionUseCase(repository).execute(
+      incomeInput,
+      "user-1",
+    );
+
+    expect(repository.accounts.get("bank")?.amount).toBe(20000);
+    expect(repository.transactions.get("transaction-1")).toMatchObject({
+      type: "income",
+      amount: 10000,
+      account_id: "bank",
+      deleted_at: null,
+    });
+  });
+
+  it("deleting an income transaction debits the balance back", async () => {
+    await new CreateTransactionUseCase(repository).execute(
+      incomeInput,
+      "user-1",
+    );
+    await new DeleteTransactionUseCase(repository).execute(
+      "transaction-1",
+      "2026-05-19T00:00:00.000Z",
+    );
+
+    expect(repository.accounts.get("bank")?.amount).toBe(10000);
+    expect(repository.transactions.get("transaction-1")?.deleted_at).toBe(
+      "2026-05-19T00:00:00.000Z",
+    );
+  });
+
+  it("throws when trying to update a nonexistent transaction", async () => {
+    await expect(
+      new UpdateTransactionUseCase(repository).execute(
+        "nonexistent",
+        expenseInput,
+      ),
+    ).rejects.toThrow("Missing transaction nonexistent");
+  });
+
+  it("throws when trying to delete a nonexistent transaction", async () => {
+    await expect(
+      new DeleteTransactionUseCase(repository).execute(
+        "nonexistent",
+        "2026-05-18T00:00:00.000Z",
+      ),
+    ).rejects.toThrow("Missing transaction nonexistent");
+  });
+
+  it("throws when account is missing during create", async () => {
+    repository.accounts.clear();
+    await expect(
+      new CreateTransactionUseCase(repository).execute(expenseInput, "user-1"),
+    ).rejects.toThrow("Missing account cash");
+  });
+
+  it("correctly recalculates delta for income-to-expense type switch on same account", async () => {
+    // Create income: bank +10000 = 20000
+    await new CreateTransactionUseCase(repository).execute(
+      incomeInput,
+      "user-1",
+    );
+
+    // Update income→expense: reversal(-10000) + expense(-5000) = -15000 net delta
+    await new UpdateTransactionUseCase(repository).execute("transaction-1", {
+      ...incomeInput,
+      type: "expense",
+      amount: 5000,
+      categoryId: "food",
+    });
+
+    // bank was 20000, net delta = +10000(reversal of income) -5000(new expense) ... wait
+    // Actually: reversal of income = -10000, new expense = -5000, net = -15000 from 20000 = 5000
+    expect(repository.accounts.get("bank")?.amount).toBe(5000);
+  });
+
+  it("cross-account update: applies reversal to old and effect to new account", async () => {
+    // Create expense on cash: 5000 - 500 = 4500
+    await new CreateTransactionUseCase(repository).execute(
+      expenseInput,
+      "user-1",
+    );
+
+    // Move to bank as income: cash gets +500 (reversal), bank gets +1200 (income)
+    await new UpdateTransactionUseCase(repository).execute("transaction-1", {
+      ...expenseInput,
+      accountId: "bank",
+      type: "income",
+      amount: 1200,
+      categoryId: null,
+    });
+
+    expect(repository.accounts.get("cash")?.amount).toBe(5000);
+    expect(repository.accounts.get("bank")?.amount).toBe(11200);
+    expect(repository.transactions.get("transaction-1")).toMatchObject({
+      account_id: "bank",
+      type: "income",
+      amount: 1200,
+    });
   });
 });

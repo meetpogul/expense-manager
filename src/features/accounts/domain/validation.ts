@@ -1,31 +1,25 @@
 import { emptyActionState } from "@/lib/actions/state";
 import { stringFromFormData } from "@/shared/application/form-data";
 import { fieldErrorsFromZod } from "@/shared/application/zod-errors";
+import { validErr, validOk } from "@/shared/domain/result";
 
 import { accountFormSchema, type AccountInput } from "./account.schema";
 
-import type { ActionState } from "@/lib/actions/state";
+import type { ValidationResult } from "@/shared/domain/result";
 import type { z } from "zod";
-
-type ValidationResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; state: ActionState };
 
 function resultFromSchema<T>(
   parsed: { success: true; data: T } | { success: false; error: z.ZodError },
 ): ValidationResult<T> {
   if (parsed.success) {
-    return { ok: true, data: parsed.data };
+    return validOk(parsed.data);
   }
 
-  return {
+  return validErr({
     ok: false,
-    state: {
-      ok: false,
-      message: "Check the highlighted fields.",
-      fieldErrors: fieldErrorsFromZod(parsed.error),
-    },
-  };
+    message: "Check the highlighted fields.",
+    fieldErrors: fieldErrorsFromZod(parsed.error),
+  });
 }
 
 export function validateAccountForm(

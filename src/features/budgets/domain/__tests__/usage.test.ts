@@ -190,4 +190,121 @@ describe("budget usage", () => {
       pausedWarning,
     ]);
   });
+
+  // ── Edge cases ───────────────────────────────────────────────────────────
+
+  it("transaction exactly on window.from boundary is included", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    expect(
+      transactionAppliesToBudget(
+        budget,
+        transaction("t1", { date: "2026-05-10" }),
+        window,
+      ),
+    ).toBe(true);
+  });
+
+  it("transaction exactly on window.to boundary is included", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    expect(
+      transactionAppliesToBudget(
+        budget,
+        transaction("t1", { date: "2026-06-09" }),
+        window,
+      ),
+    ).toBe(true);
+  });
+
+  it("transaction one day before window.from is excluded", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    expect(
+      transactionAppliesToBudget(
+        budget,
+        transaction("t1", { date: "2026-05-09" }),
+        window,
+      ),
+    ).toBe(false);
+  });
+
+  it("deleted transaction is always excluded", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    expect(
+      transactionAppliesToBudget(
+        budget,
+        transaction("t1", { deleted_at: "2026-05-12T00:00:00.000Z" }),
+        window,
+      ),
+    ).toBe(false);
+  });
+
+  it("income transaction is excluded even if it matches category and window", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    expect(
+      transactionAppliesToBudget(
+        budget,
+        transaction("t1", { type: "income" }),
+        window,
+      ),
+    ).toBe(false);
+  });
+
+  it("null category_id budget matches all expense categories", () => {
+    const window = { from: "2026-05-10", to: "2026-06-09" };
+    const overall = { ...budget, category_id: null };
+
+    expect(
+      transactionAppliesToBudget(
+        overall,
+        transaction("t1", { category_id: "food" }),
+        window,
+      ),
+    ).toBe(true);
+    expect(
+      transactionAppliesToBudget(
+        overall,
+        transaction("t2", { category_id: "travel" }),
+        window,
+      ),
+    ).toBe(true);
+  });
+
+  it("clampProgressPercent at boundary values: 0 and 100", () => {
+    expect(clampProgressPercent(0)).toBe(0);
+    expect(clampProgressPercent(100)).toBe(100);
+  });
+
+  it("calculateBudgetUsage with zero budget amount produces zero percentUsed", () => {
+    const usage = calculateBudgetUsage(
+      { ...budget, amount: 0 },
+      [transaction("t1")],
+      "2026-05-18",
+    );
+    expect(usage.percentUsed).toBe(0);
+  });
+
+  it("sortBudgetsForAttention: two active budgets with same status sorted by percentUsed desc", () => {
+    const base = {
+      ...budget,
+      usage: {
+        spent: 0,
+        remaining: 1000,
+        status: "warning" as const,
+        window: { from: "2026-05-10", to: "2026-06-09" },
+      },
+    };
+    const high = {
+      ...base,
+      id: "high",
+      usage: { ...base.usage, percentUsed: 95 },
+    };
+    const low = {
+      ...base,
+      id: "low",
+      usage: { ...base.usage, percentUsed: 82 },
+    };
+
+    const sorted = sortBudgetsForAttention([low, high]);
+    expect(sorted[0].id).toBe("high");
+    expect(sorted[1].id).toBe("low");
+  });
 });

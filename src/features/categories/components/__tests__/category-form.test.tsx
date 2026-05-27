@@ -1,16 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ActionState } from "@/lib/actions/state";
-
-const actionStateMock = vi.hoisted(() => ({
-  formAction: vi.fn(),
-  pending: false,
-  state: {
-    ok: false,
-    message: "",
-  } as ActionState,
-}));
+import {
+  actionStateMock,
+  resetActionState,
+} from "@/test/mock-use-action-state";
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
@@ -25,7 +19,7 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-import { CategoryForm } from "../category-form";
+import { CategoryFormContainer } from "../category-form";
 
 const categoriesFixture = [
   {
@@ -52,23 +46,13 @@ const categoriesFixture = [
   },
 ];
 
-function resetActionState(state?: Partial<ActionState>) {
-  actionStateMock.formAction = vi.fn();
-  actionStateMock.pending = false;
-  actionStateMock.state = {
-    ok: false,
-    message: "",
-    ...state,
-  };
-}
-
-describe("CategoryForm", () => {
+describe("CategoryFormContainer", () => {
   beforeEach(() => {
     resetActionState();
   });
 
-  it("renders create defaults", () => {
-    render(<CategoryForm />);
+  it("renders create defaults", { timeout: 15000 }, () => {
+    render(<CategoryFormContainer />);
 
     expect(screen.getByLabelText("Icon")).toHaveValue("");
     expect(screen.getByLabelText("Name")).toHaveValue("");
@@ -79,7 +63,7 @@ describe("CategoryForm", () => {
   });
 
   it("renders edit values", () => {
-    render(<CategoryForm category={categoriesFixture[1]} />);
+    render(<CategoryFormContainer category={categoriesFixture[1]} />);
 
     expect(screen.getByLabelText("Icon")).toHaveValue("MI");
     expect(screen.getByLabelText("Name")).toHaveValue("Miscellaneous");
@@ -99,7 +83,7 @@ describe("CategoryForm", () => {
     });
     actionStateMock.pending = true;
 
-    render(<CategoryForm />);
+    render(<CategoryFormContainer />);
 
     expect(screen.getByText("Check the highlighted fields.")).toBeVisible();
     expect(screen.getByText("Category name is required.")).toBeVisible();

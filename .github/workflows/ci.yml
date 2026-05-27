@@ -1,0 +1,540 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  lint:
+    name: ESLint
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm lint > reports/lint-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/lint-status.txt
+          else
+            echo "failed" > reports/lint-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload ESLint Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-lint
+          path: reports/lint-*.txt
+          if-no-files-found: warn
+
+  format:
+    name: Prettier
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm format:check > reports/format-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/format-status.txt
+          else
+            echo "failed" > reports/format-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload Prettier Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-format
+          path: reports/format-*.txt
+          if-no-files-found: warn
+
+  typecheck:
+    name: TypeScript
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm typecheck > reports/typecheck-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/typecheck-status.txt
+          else
+            echo "failed" > reports/typecheck-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload TypeScript Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-typecheck
+          path: reports/typecheck-*.txt
+          if-no-files-found: warn
+
+  unit:
+    name: Unit Tests
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm test:run > reports/unit-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/unit-status.txt
+          else
+            echo "failed" > reports/unit-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload Unit Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-unit
+          path: reports/unit-*.txt
+          if-no-files-found: warn
+
+  coverage:
+    name: Coverage
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run coverage
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm check:coverage > reports/coverage-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/coverage-status.txt
+          else
+            echo "failed" > reports/coverage-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-coverage
+          path: reports/coverage-*.txt
+          if-no-files-found: warn
+
+  e2e:
+    name: E2E Tests
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.head_commit.committer.username != 'web-flow'
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+      E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        run: |
+          mkdir -p reports
+          set +e
+          NO_COLOR=1 pnpm test:e2e > reports/e2e-output.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "passed" > reports/e2e-status.txt
+          else
+            echo "failed" > reports/e2e-status.txt
+          fi
+          exit "$status"
+
+      - name: Upload E2E Summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-report-e2e
+          path: reports/e2e-*.txt
+          if-no-files-found: warn
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  quality-comment:
+    name: Quality PR Comment
+    if: ${{ github.event_name == 'pull_request' && always() }}
+    runs-on: ubuntu-latest
+    needs: [lint, format, typecheck, unit]
+    steps:
+      - name: Download quality reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: ci-report-*
+          path: reports
+          merge-multiple: true
+
+      - name: Build quality comment
+        run: |
+          render_row() {
+            check="$1"
+            label="$2"
+            command="$3"
+            status_file="reports/${check}-status.txt"
+            output_file="reports/${check}-output.txt"
+
+            if [ -f "$status_file" ]; then
+              status="$(cat "$status_file")"
+            else
+              status="missing"
+            fi
+
+            case "$status" in
+              passed) icon="✅"; result="Passed" ;;
+              failed) icon="❌"; result="Failed" ;;
+              *) icon="❌"; result="Missing report" ;;
+            esac
+
+            echo "| ${label} | ${icon} ${result} | \`${command}\` |" >> pr-quality-report.md
+          }
+
+          render_details() {
+            check="$1"
+            label="$2"
+            mode="$3"
+            status_file="reports/${check}-status.txt"
+            output_file="reports/${check}-output.txt"
+            status="missing"
+
+            if [ -f "$status_file" ]; then
+              status="$(cat "$status_file")"
+            fi
+
+            if [ "$mode" = "warnings" ] && [ -f "$output_file" ]; then
+              if ! grep -Eiq "warning|warnings" "$output_file"; then
+                return
+              fi
+              summary="${label} warnings"
+            elif [ "$status" = "failed" ]; then
+              summary="${label} errors"
+            elif [ "$status" = "missing" ]; then
+              summary="${label} report missing"
+            else
+              return
+            fi
+
+            echo "" >> pr-quality-report.md
+            echo "<details><summary>${summary}</summary>" >> pr-quality-report.md
+            echo "" >> pr-quality-report.md
+            echo '```text' >> pr-quality-report.md
+            if [ -f "$output_file" ]; then
+              cat "$output_file" >> pr-quality-report.md
+            else
+              echo "This check did not create a report artifact." >> pr-quality-report.md
+            fi
+            echo '```' >> pr-quality-report.md
+            echo "</details>" >> pr-quality-report.md
+          }
+
+          echo "## Quality Checks Report" > pr-quality-report.md
+          echo "" >> pr-quality-report.md
+          echo "Commit: \`${{ github.event.pull_request.head.sha }}\`" >> pr-quality-report.md
+          echo "" >> pr-quality-report.md
+          echo "| Check | Status | Command |" >> pr-quality-report.md
+          echo "| --- | --- | --- |" >> pr-quality-report.md
+          render_row "lint" "ESLint" "pnpm lint"
+          render_row "format" "Prettier" "pnpm format:check"
+          render_row "typecheck" "TypeScript" "pnpm typecheck"
+          render_row "unit" "Unit Tests" "pnpm test:run"
+
+          render_details "lint" "ESLint" "warnings"
+          render_details "lint" "ESLint" "errors"
+          render_details "format" "Prettier" "errors"
+          render_details "typecheck" "TypeScript" "errors"
+          render_details "unit" "Unit Tests" "errors"
+
+      - name: Comment quality report
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: quality-report
+          path: pr-quality-report.md
+
+  coverage-comment:
+    name: Coverage PR Comment
+    if: ${{ github.event_name == 'pull_request' && always() }}
+    runs-on: ubuntu-latest
+    needs: [coverage]
+    steps:
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ci-report-coverage
+          path: reports
+
+      - name: Build coverage comment
+        run: |
+          status="missing"
+          if [ -f reports/coverage-status.txt ]; then
+            status="$(cat reports/coverage-status.txt)"
+          fi
+
+          if [ "$status" = "passed" ]; then
+            icon="✅"
+            result="Coverage passed"
+          else
+            icon="❌"
+            result="Coverage failed"
+          fi
+
+          echo "## Coverage Report" > pr-coverage-report.md
+          echo "" >> pr-coverage-report.md
+          echo "Commit: \`${{ github.event.pull_request.head.sha }}\`" >> pr-coverage-report.md
+          echo "" >> pr-coverage-report.md
+          echo "${icon} ${result}" >> pr-coverage-report.md
+          echo "" >> pr-coverage-report.md
+
+          if [ -f reports/coverage-output.txt ]; then
+            summary="$(grep -E "Statements|Branches|Functions|Lines" reports/coverage-output.txt | tail -n 4 || true)"
+          else
+            summary=""
+          fi
+
+          if [ -n "$summary" ]; then
+            echo "| Metric | Coverage |" >> pr-coverage-report.md
+            echo "| --- | --- |" >> pr-coverage-report.md
+            echo "$summary" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); print "| " $1 " | " $2 " |" }' >> pr-coverage-report.md
+            echo "" >> pr-coverage-report.md
+          fi
+
+          echo "<details><summary>Full coverage output</summary>" >> pr-coverage-report.md
+          echo "" >> pr-coverage-report.md
+          echo '```text' >> pr-coverage-report.md
+          if [ -f reports/coverage-output.txt ]; then
+            cat reports/coverage-output.txt >> pr-coverage-report.md
+          else
+            echo "This check did not create a report artifact." >> pr-coverage-report.md
+          fi
+          echo '```' >> pr-coverage-report.md
+          echo "</details>" >> pr-coverage-report.md
+
+      - name: Comment coverage report
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage-report
+          path: pr-coverage-report.md
+
+  e2e-comment:
+    name: E2E PR Comment
+    if: ${{ github.event_name == 'pull_request' && always() }}
+    runs-on: ubuntu-latest
+    needs: [e2e]
+    steps:
+      - name: Download E2E report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ci-report-e2e
+          path: reports
+
+      - name: Build E2E comment
+        run: |
+          status="missing"
+          if [ -f reports/e2e-status.txt ]; then
+            status="$(cat reports/e2e-status.txt)"
+          fi
+
+          echo "## E2E Checks Report" > pr-e2e-report.md
+          echo "" >> pr-e2e-report.md
+          echo "Commit: \`${{ github.event.pull_request.head.sha }}\`" >> pr-e2e-report.md
+          echo "" >> pr-e2e-report.md
+
+          if [ "$status" = "passed" ]; then
+            echo "✅ E2E passed" >> pr-e2e-report.md
+          else
+            echo "❌ E2E failed" >> pr-e2e-report.md
+            echo "" >> pr-e2e-report.md
+            echo "<details open><summary>Failed E2E tests</summary>" >> pr-e2e-report.md
+            echo "" >> pr-e2e-report.md
+            echo '```text' >> pr-e2e-report.md
+            if [ -f reports/e2e-output.txt ]; then
+              awk '/^[[:space:]]+[0-9]+\)/,/^[[:space:]]*[0-9]+ failed/' reports/e2e-output.txt > failed-e2e.txt
+              if [ -s failed-e2e.txt ]; then
+                cat failed-e2e.txt >> pr-e2e-report.md
+              else
+                echo "No focused failed-test summary was found. See the full E2E output below." >> pr-e2e-report.md
+              fi
+            else
+              echo "This check did not create a report artifact." >> pr-e2e-report.md
+            fi
+            echo '```' >> pr-e2e-report.md
+            echo "</details>" >> pr-e2e-report.md
+          fi
+
+          echo "" >> pr-e2e-report.md
+          echo "<details><summary>E2E output</summary>" >> pr-e2e-report.md
+          echo "" >> pr-e2e-report.md
+          echo '```text' >> pr-e2e-report.md
+          if [ -f reports/e2e-output.txt ]; then
+            cat reports/e2e-output.txt >> pr-e2e-report.md
+          else
+            echo "This check did not create a report artifact." >> pr-e2e-report.md
+          fi
+          echo '```' >> pr-e2e-report.md
+          echo "</details>" >> pr-e2e-report.md
+
+      - name: Comment E2E report
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: e2e-report
+          path: pr-e2e-report.md

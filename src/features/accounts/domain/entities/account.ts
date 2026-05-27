@@ -26,6 +26,23 @@ export class Account {
     return new Account(props);
   }
 
+  static create(input: { name: string; type: AccountType; balance?: number }) {
+    return new Account({
+      id: AccountId.from("new-account"),
+      userId: UserId.from("system"),
+      name: input.name,
+      type: input.type,
+      balance: Money.from(input.balance ?? 0),
+      color: null,
+      icon: null,
+      isDefault: false,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    });
+  }
+
   get id() {
     return this.props.id;
   }

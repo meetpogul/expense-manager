@@ -39,6 +39,7 @@ export function AppNav() {
 
         return (
           <Link
+            aria-current={active ? "page" : undefined}
             className={cn(
               "text-muted-foreground hover:text-foreground hover:bg-muted/70 inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
               active && "bg-secondary text-foreground",

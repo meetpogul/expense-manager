@@ -22,14 +22,24 @@ import { useServerActionForm } from "@/lib/actions/use-server-action-form";
 
 import type { Account } from "@/features/accounts/domain/types";
 
+import type { RefObject } from "react";
+import type { ActionState } from "@/lib/actions/state";
+
 type AccountFormProps = {
   account?: Account;
+  formRef: RefObject<HTMLFormElement | null>;
+  isPending: boolean;
+  state: ActionState;
+  submitFormData: () => void;
 };
 
-export function AccountForm({ account }: AccountFormProps) {
-  const action = account ? updateAccountAction : createAccountAction;
-  const { formRef, isPending, state, submitFormData } =
-    useServerActionForm(action);
+export function AccountForm({
+  account,
+  formRef,
+  isPending,
+  state,
+  submitFormData,
+}: AccountFormProps) {
   const {
     formState: { errors },
     handleSubmit,
@@ -101,5 +111,21 @@ export function AccountForm({ account }: AccountFormProps) {
         {isPending ? "Saving..." : account ? "Update account" : "Save account"}
       </Button>
     </form>
+  );
+}
+
+export function AccountFormContainer({ account }: { account?: Account }) {
+  const action = account ? updateAccountAction : createAccountAction;
+  const { formRef, isPending, state, submitFormData } =
+    useServerActionForm(action);
+
+  return (
+    <AccountForm
+      account={account}
+      formRef={formRef}
+      isPending={isPending}
+      state={state}
+      submitFormData={submitFormData}
+    />
   );
 }

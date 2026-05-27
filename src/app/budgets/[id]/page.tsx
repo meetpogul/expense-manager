@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Budget Details",
+  description: "View detailed spending for a specific budget category.",
+};
+
 import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 import { notFound } from "next/navigation";

@@ -1,18 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ActionState } from "@/lib/actions/state";
+import {
+  actionStateMock,
+  resetActionState,
+} from "@/test/mock-use-action-state";
 import type { BudgetDetail, BudgetWithUsage } from "../../domain/types";
 import type { Category } from "@/features/categories/domain/types";
-
-const actionStateMock = vi.hoisted(() => ({
-  formAction: vi.fn(),
-  pending: false,
-  state: {
-    ok: false,
-    message: "",
-  } as ActionState,
-}));
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
@@ -28,7 +22,7 @@ vi.mock("react", async (importOriginal) => {
 });
 
 import { BudgetDetail as BudgetDetailView } from "../budget-detail";
-import { BudgetForm } from "../budget-form";
+import { BudgetFormContainer } from "../budget-form";
 import { BudgetList } from "../budget-list";
 
 const categories: Category[] = [
@@ -83,16 +77,6 @@ const budget: BudgetWithUsage = {
     window: { from: "2026-05-01", to: "2026-05-31" },
   },
 };
-
-function resetActionState(state?: Partial<ActionState>) {
-  actionStateMock.formAction = vi.fn();
-  actionStateMock.pending = false;
-  actionStateMock.state = {
-    ok: false,
-    message: "",
-    ...state,
-  };
-}
 
 describe("budget components", () => {
   beforeEach(() => {
@@ -174,7 +158,7 @@ describe("budget components", () => {
   });
 
   it("renders create defaults and only expense categories", () => {
-    render(<BudgetForm categories={categories} />);
+    render(<BudgetFormContainer categories={categories} />);
 
     expect(screen.getByLabelText("Limit")).toHaveValue("");
     expect(screen.getByLabelText("Category")).toHaveValue("");
@@ -194,12 +178,108 @@ describe("budget components", () => {
     });
     actionStateMock.pending = true;
 
-    render(<BudgetForm budget={budget} categories={categories} />);
+    render(<BudgetFormContainer budget={budget} categories={categories} />);
 
     expect(screen.getByLabelText("Limit")).toHaveValue("1000");
     expect(screen.getByLabelText("Category")).toHaveValue("food");
     expect(screen.getByText("Check the highlighted fields.")).toBeVisible();
     expect(screen.getByText("Enter an amount greater than 0.")).toBeVisible();
     expect(screen.getByRole("button", { name: /saving/i })).toBeDisabled();
+  });
+
+  it("renders edit form button text when not pending", () => {
+    render(<BudgetFormContainer budget={budget} categories={categories} />);
+    expect(
+      screen.getByRole("button", { name: /update budget/i }),
+    ).toBeEnabled();
+  });
+  it("renders budget with null categories (fallback label)", () => {
+    const nullCategoryBudget: BudgetWithUsage = {
+      ...budget,
+      categories: null,
+    };
+    render(<BudgetList budgets={[nullCategoryBudget]} />);
+    expect(screen.getByText("Overall spending")).toBeVisible();
+  });
+
+  it("renders budget detail with over-budget status", () => {
+    const overBudget: BudgetDetail = {
+      ...budget,
+      transactions: [],
+      usage: {
+        ...budget.usage,
+        spent: 1200,
+        remaining: -200,
+        percentUsed: 120,
+        status: "alert",
+      },
+    };
+    render(<BudgetDetailView budget={overBudget} />);
+    expect(screen.getByText("Over")).toBeVisible();
+    expect(screen.getByText("120% used")).toBeVisible();
+
+    render(<BudgetList budgets={[overBudget]} />);
+    expect(screen.getByText(/200(\.00)? over/)).toBeVisible();
+  });
+
+  it("renders budget detail with zero transactions empty state", () => {
+    const emptyDetail: BudgetDetail = {
+      ...budget,
+      transactions: [],
+    };
+    render(<BudgetDetailView budget={emptyDetail} />);
+    expect(screen.getByText("No related spending")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Matching expenses for this budget period will appear here.",
+      ),
+    ).toBeVisible();
+  });
+
+  it("renders budget detail for paused budget", () => {
+    const pausedDetail: BudgetDetail = {
+      ...budget,
+      is_active: false,
+      transactions: [],
+    };
+    render(<BudgetDetailView budget={pausedDetail} />);
+    expect(screen.getByText("Paused")).toBeVisible();
+    expect(screen.getByRole("button", { name: /resume/i })).toBeVisible();
+  });
+
+  it("renders budget detail transaction with null fallbacks", () => {
+    const detailWithNullTx: BudgetDetail = {
+      ...budget,
+      categories: null, // Test line 50
+      transactions: [
+        {
+          id: "tx-2",
+          user_id: "user-1",
+          account_id: "acc",
+          category_id: "cat",
+          type: "expense",
+          amount: 50,
+          note: null,
+          merchant_name: null,
+          date: "2026-05-15",
+          time: null,
+          payment_method: null,
+          created_at: "2026-05-15T00:00:00.000Z",
+          updated_at: "2026-05-15T00:00:00.000Z",
+          deleted_at: null,
+          accounts: null,
+          categories: null, // Test line 129 fallback "Transaction"
+        },
+      ],
+    };
+    render(<BudgetDetailView budget={detailWithNullTx} />);
+    expect(screen.getByText("Transaction")).toBeVisible(); // merchant/note/category fallback
+    expect(screen.getByText("Overall spending")).toBeVisible(); // header fallback
+  });
+
+  it("renders category option without icon in budget form", () => {
+    const noIconCategories = [{ ...categories[0]!, icon: null }];
+    render(<BudgetFormContainer categories={noIconCategories} />);
+    expect(screen.getByRole("option", { name: "Food & Dining" })).toBeVisible(); // no trailing space from icon
   });
 });

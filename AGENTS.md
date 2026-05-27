@@ -28,6 +28,9 @@ pnpm check:ai:start
 pnpm check:ai:end
 pnpm build
 pnpm format
+pnpm test:e2e
+pnpm test:e2e:ui
+pnpm test:e2e:report
 ```
 
 Use `pnpm` for package operations. Do not use `npm install` or `npx` when a

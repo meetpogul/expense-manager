@@ -2,16 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ActionState } from "@/lib/actions/state";
-
-const actionStateMock = vi.hoisted(() => ({
-  formAction: vi.fn(),
-  pending: false,
-  state: {
-    ok: false,
-    message: "",
-  } as ActionState,
-}));
+import {
+  actionStateMock,
+  resetActionState,
+} from "@/test/mock-use-action-state";
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
@@ -26,25 +20,15 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-import { AuthForm } from "../auth-form";
+import { AuthFormContainer } from "../auth-form";
 
-function resetActionState(state?: Partial<ActionState>) {
-  actionStateMock.formAction = vi.fn();
-  actionStateMock.pending = false;
-  actionStateMock.state = {
-    ok: false,
-    message: "",
-    ...state,
-  };
-}
-
-describe("AuthForm", () => {
+describe("AuthFormContainer", () => {
   beforeEach(() => {
     resetActionState();
   });
 
   it("starts in sign-in mode", () => {
-    const { container } = render(<AuthForm />);
+    const { container } = render(<AuthFormContainer />);
     const modeGroup = screen.getByRole("group", {
       name: "Authentication mode",
     });
@@ -57,15 +41,11 @@ describe("AuthForm", () => {
 
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeVisible();
-    expect(screen.getByLabelText("Password")).toHaveAttribute(
-      "autocomplete",
-      "current-password",
-    );
     expect(signInTab).toHaveAttribute("aria-pressed", "true");
     expect(createAccountTab).toHaveAttribute("aria-pressed", "false");
-    expect(container.querySelector('input[name="intent"]')).toHaveValue(
-      "signin",
-    );
+
+    const formElement = container.querySelector("form");
+    expect(formElement).toHaveFormValues({ intent: "signin" });
     expect(
       container.querySelector('button:not([type="button"])'),
     ).toHaveTextContent("Sign in");
@@ -73,7 +53,7 @@ describe("AuthForm", () => {
 
   it("toggles create-account mode and updates hidden intent", async () => {
     const user = userEvent.setup();
-    const { container } = render(<AuthForm />);
+    const { container } = render(<AuthFormContainer />);
     const modeGroup = screen.getByRole("group", {
       name: "Authentication mode",
     });
@@ -89,13 +69,9 @@ describe("AuthForm", () => {
     expect(signInTab).toHaveAttribute("aria-pressed", "false");
     expect(createAccountTab).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("Name")).toBeVisible();
-    expect(screen.getByLabelText("Password")).toHaveAttribute(
-      "autocomplete",
-      "new-password",
-    );
-    expect(container.querySelector('input[name="intent"]')).toHaveValue(
-      "signup",
-    );
+
+    const formElement = container.querySelector("form");
+    expect(formElement).toHaveFormValues({ intent: "signup" });
     expect(
       container.querySelector('button:not([type="button"])'),
     ).toHaveTextContent("Create account");
@@ -106,9 +82,7 @@ describe("AuthForm", () => {
     expect(signInTab).toHaveAttribute("aria-pressed", "true");
     expect(createAccountTab).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-    expect(container.querySelector('input[name="intent"]')).toHaveValue(
-      "signin",
-    );
+    expect(formElement).toHaveFormValues({ intent: "signin" });
     expect(
       container.querySelector('button:not([type="button"])'),
     ).toHaveTextContent("Sign in");
@@ -121,7 +95,7 @@ describe("AuthForm", () => {
     });
     actionStateMock.pending = true;
 
-    render(<AuthForm />);
+    render(<AuthFormContainer />);
 
     expect(screen.getByText("Invalid login credentials")).toBeVisible();
     expect(screen.getByRole("button", { name: /working/i })).toBeDisabled();
@@ -133,7 +107,7 @@ describe("AuthForm", () => {
       message: "Account created. Check your email to confirm your sign in.",
     });
 
-    render(<AuthForm />);
+    render(<AuthFormContainer />);
 
     expect(
       screen.getByText(

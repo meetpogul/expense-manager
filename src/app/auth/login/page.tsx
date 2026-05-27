@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Login",
+  description: "Sign in to Expense Manager to track your finances securely.",
+};
+
 import { WalletCardsIcon } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AuthForm } from "@/features/auth/components/auth-form";
+import { AuthFormContainer } from "@/features/auth";
+import { getUser } from "@/features/auth/server/session";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   return (
     <main className="bg-background text-foreground flex min-h-svh items-center justify-center px-4 py-10">
       <div className="flex w-full max-w-md flex-col gap-6">
@@ -25,7 +40,7 @@ export default function LoginPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <AuthForm />
+            <AuthFormContainer />
           </CardContent>
         </Card>
       </div>

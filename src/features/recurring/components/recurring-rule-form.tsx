@@ -31,20 +31,28 @@ import type { Category } from "@/features/categories/domain/types";
 import type { RecurringRule } from "@/features/recurring/domain/types";
 import type { TransactionType } from "@/features/transactions/domain/types";
 
+import type { RefObject } from "react";
+import type { ActionState } from "@/lib/actions/state";
+
 type RecurringRuleFormProps = {
   accounts: Account[];
   categories: Category[];
   rule?: RecurringRule;
+  formRef: RefObject<HTMLFormElement | null>;
+  isPending: boolean;
+  state: ActionState;
+  submitFormData: () => void;
 };
 
 export function RecurringRuleForm({
   accounts,
   categories,
   rule,
+  formRef,
+  isPending,
+  state,
+  submitFormData,
 }: RecurringRuleFormProps) {
-  const action = rule ? updateRecurringRuleAction : createRecurringRuleAction;
-  const { formRef, isPending, state, submitFormData } =
-    useServerActionForm(action);
   const defaultType = rule?.type ?? "expense";
   const defaultCategory =
     rule?.category_id ??
@@ -274,5 +282,31 @@ export function RecurringRuleForm({
         {isPending ? "Saving..." : rule ? "Update recurring" : "Save recurring"}
       </Button>
     </form>
+  );
+}
+
+export function RecurringRuleFormContainer({
+  accounts,
+  categories,
+  rule,
+}: {
+  accounts: Account[];
+  categories: Category[];
+  rule?: RecurringRule;
+}) {
+  const action = rule ? updateRecurringRuleAction : createRecurringRuleAction;
+  const { formRef, isPending, state, submitFormData } =
+    useServerActionForm(action);
+
+  return (
+    <RecurringRuleForm
+      accounts={accounts}
+      categories={categories}
+      rule={rule}
+      formRef={formRef}
+      isPending={isPending}
+      state={state}
+      submitFormData={submitFormData}
+    />
   );
 }

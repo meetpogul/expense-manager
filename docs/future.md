@@ -1,0 +1,4 @@
+- Robust unit test
+- Mobile friendly UI/UX
+- Offline - Mobile native support
+- Vercel Deploymment

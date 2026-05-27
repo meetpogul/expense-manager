@@ -1,16 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ActionState } from "@/lib/actions/state";
-
-const actionStateMock = vi.hoisted(() => ({
-  formAction: vi.fn(),
-  pending: false,
-  state: {
-    ok: false,
-    message: "",
-  } as ActionState,
-}));
+import {
+  actionStateMock,
+  resetActionState,
+} from "@/test/mock-use-action-state";
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
@@ -25,7 +19,7 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-import { AccountForm } from "../account-form";
+import { AccountFormContainer } from "../account-form";
 
 const accountsFixture = [
   {
@@ -44,23 +38,13 @@ const accountsFixture = [
   },
 ];
 
-function resetActionState(state?: Partial<ActionState>) {
-  actionStateMock.formAction = vi.fn();
-  actionStateMock.pending = false;
-  actionStateMock.state = {
-    ok: false,
-    message: "",
-    ...state,
-  };
-}
-
-describe("AccountForm", () => {
+describe("AccountFormContainer", () => {
   beforeEach(() => {
     resetActionState();
   });
 
   it("renders create defaults", () => {
-    render(<AccountForm />);
+    render(<AccountFormContainer />);
 
     expect(screen.getByLabelText("Name")).toHaveValue("");
     expect(screen.getByLabelText("Type")).toHaveValue("bank");
@@ -69,7 +53,7 @@ describe("AccountForm", () => {
   });
 
   it("renders edit values", () => {
-    render(<AccountForm account={accountsFixture[0]} />);
+    render(<AccountFormContainer account={accountsFixture[0]} />);
 
     expect(screen.getByLabelText("Name")).toHaveValue("Cash Wallet");
     expect(screen.getByLabelText("Type")).toHaveValue("cash");
@@ -89,7 +73,7 @@ describe("AccountForm", () => {
     });
     actionStateMock.pending = true;
 
-    render(<AccountForm />);
+    render(<AccountFormContainer />);
 
     expect(screen.getByText("Check the highlighted fields.")).toBeVisible();
     expect(screen.getByText("Account name is required.")).toBeVisible();

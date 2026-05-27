@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Transactions",
+  description:
+    "View, filter, and manage all your income and expense transactions.",
+};
+
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 
@@ -7,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { getSupabaseAndUser } from "@/features/auth/server/session";
 import { TransactionFilters } from "@/features/transactions/components/transaction-filters";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import { TransactionFormContainer } from "@/features/transactions/components/transaction-form";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
 import { getAccounts } from "@/features/accounts/server/queries";
 import { getCategories } from "@/features/categories/server/queries";
@@ -72,7 +80,10 @@ export default async function TransactionsPage({
             </CardHeader>
             <CardContent>
               {accounts.length > 0 ? (
-                <TransactionForm accounts={accounts} categories={categories} />
+                <TransactionFormContainer
+                  accounts={accounts}
+                  categories={categories}
+                />
               ) : (
                 <Empty
                   action={
